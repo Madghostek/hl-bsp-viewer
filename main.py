@@ -189,23 +189,23 @@ def main(lumpNames, callbacks):
 			#	transMatrix = [];
 			#	glGetFloatv(GL_MODELVIEW_MATRIX, transMatrix);
 			#	print(transMatrix)
-			keys = pygame.key.get_pressed()
-			if keys[pygame.K_d]:
-				glTranslatef(-10,0,0)
-			if keys[pygame.K_a]:
-				glTranslatef(10,0,0)
-			if keys[pygame.K_UP]:
-				glTranslatef(0,0,-10)
-			if keys[pygame.K_DOWN]:
-				glTranslatef(0,0,10)
-			if keys[pygame.K_q]:
-				glRotatef(-10,0,0,1)
-			if keys[pygame.K_e]:
-				glRotatef(10,0,0,1)
-			if keys[pygame.K_w]:
-				glTranslatef(0,-10,0)
-			if keys[pygame.K_s]:
-				glTranslatef(0,10,0)
+		keys = pygame.key.get_pressed()
+		if keys[pygame.K_d]:
+			glTranslatef(-10,0,0)
+		if keys[pygame.K_a]:
+			glTranslatef(10,0,0)
+		if keys[pygame.K_UP]:
+			glTranslatef(0,0,-10)
+		if keys[pygame.K_DOWN]:
+			glTranslatef(0,0,10)
+		if keys[pygame.K_q]:
+			glRotatef(-2,0,0,1)
+		if keys[pygame.K_e]:
+			glRotatef(2,0,0,1)
+		if keys[pygame.K_w]:
+			glTranslatef(0,-10,0)
+		if keys[pygame.K_s]:
+			glTranslatef(0,10,0)
 
 
 		
