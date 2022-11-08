@@ -53,33 +53,63 @@ gCallbacks = {
 	12: EdgesCallback,
 }
 
-vertex_shader1 = """#version 410
+vertex_shader_perspective = """#version 410
 layout(location = 0) in vec3 pos;
+uniform mat4 projection_matrix;
+
+out vec4 position;
 void main () {
-    gl_Position = vec4(pos.x,pos.y,pos.z, 1.0f);
+    gl_Position = projection_matrix*vec4(pos, 1.0f);
 }""" # lub pos
+
+fragment_shader = """#version 410
+
+in vec4 position;
+out vec4 FragColor;
+
+void main(){
+
+	FragColor = vec4(position.x,position.y,position.z, 1.0);
+}"""
 
 
 def pe():
 	print("error",glGetError())
 
 
-def ProgramWithShader(vertexShader):
+def ProgramWithShader(vertexShader, fragmentShader = None):
 	#shader
 	prog = glCreateProgram()
 	shader = glCreateShader(GL_VERTEX_SHADER)
 	glShaderSource(shader, vertexShader)
 	pe()
 	glCompileShader(shader);
+	res = glGetShaderiv(shader,GL_COMPILE_STATUS)
+	print("vertex shader compilation status:","OK" if res==GL_TRUE else "ERROR")
+	assert (res == GL_TRUE)
 	glAttachShader(prog, shader);
-	
+	print("LOG:",glGetProgramInfoLog(prog))
+
+	if fragmentShader:
+		shader = glCreateShader(GL_FRAGMENT_SHADER)
+		glShaderSource(shader, fragmentShader)
+		pe()
+		glCompileShader(shader);
+		print("LOG:",glGetProgramInfoLog(prog))
+		glAttachShader(prog, shader)
+		res = glGetShaderiv(shader,GL_COMPILE_STATUS)
+		print("Fragment shader compilation status:","OK" if res==GL_TRUE else "ERROR")
+		assert (res == GL_TRUE)
+
+		
+
 	pe()
 	glLinkProgram(prog);
-	print("LOG:",glGetProgramInfoLog(prog))
 	pe()
 	glUseProgram(prog);
 	pe()
 	print("Program done")
+	return prog
 
 class Camera():
 	def __init__(self,display,x=0.0,y=0.0,z=0.0,pitch=0.0,yaw=0.0,roll=0.0,fov=45.0):
@@ -89,8 +119,6 @@ class Camera():
 		self.display = display
 
 	def updateView(self):
-		glLoadIdentity()
-		gluPerspective(45, (self.display[0]/self.display[1]), 0.1, 10000)
 		glRotatef(-self.angle[0],1,0,0);
 		glRotatef(-self.angle[1],0,1,0)
 		glRotatef(-self.angle[2],0,0,1)
@@ -102,17 +130,20 @@ class Camera():
 		#pos[0] should decrease
 		self.pos[0]-=dw*np.sin(np.radians(self.angle[2]))+du*np.cos(np.radians(self.angle[2]))
 		self.pos[1]+=dw*np.cos(np.radians(self.angle[2]))-du*np.sin(np.radians(self.angle[2]))
-		print(self.pos)
-		print(self.angle[2])
-		print(du,dw)
+		#print(self.pos)
+		#print(self.angle[2])
+		#print(du,dw)
 
 
 def main(lumpNames, callbacks):
+
+	useCustomShader = True
+
 	testverts = np.concatenate(np.array([[0,0,0], [0,100,0], [100,100,0]], dtype=np.float32))
 	testedges = np.array([0,1,1,2,2,0], dtype=np.int16)
 
 	returnedLumps = [[] for _ in range(len(lumpNames))]
-	with open("dd2.bsp","rb") as bsp:
+	with open("surf_notbeginner.bsp","rb") as bsp:
 		version, lumps = GetGoldsrcHeader(bsp)
 		print("version:",version)
 		print("lumps table:")
@@ -144,7 +175,11 @@ def main(lumpNames, callbacks):
 
 	#glEnableClientState(GL_VERTEX_ARRAY) #this is not needed?
 
-	#ProgramWithShader(vertex_shader1)
+	if useCustomShader == True:
+		program = ProgramWithShader(vertex_shader_perspective, fragment_shader)
+		projectionMatrixHandle = glGetUniformLocation(program, "projection_matrix");
+		assert (projectionMatrixHandle!=-1)
+
 	# #init buffers
 	vinfo = GLuint()
 	glGenVertexArrays(1, vinfo)
@@ -213,13 +248,21 @@ def main(lumpNames, callbacks):
 			cam.angle[2]+=x*0.1
 			cam.angle[0]+=y*0.1
 
-
+		# everything is done on model matrix because its simpler
+		glLoadIdentity() # clear the model matrix
+		gluPerspective(45, (display[0]/display[1]), 0.1, 5000) # generate the perspective
 		cam.updateView();
+
+		# send the final matrix to shader
+
+		if useCustomShader == True:
+			proj_mat = glGetFloatv(GL_MODELVIEW_MATRIX);	# now take it
+			glUniformMatrix4fv(projectionMatrixHandle, 1, GL_FALSE, proj_mat);
+
+			
+
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-		#glLoadIdentity()
-		#glTranslatef(0,-50,-300)
-		#glRotatef(-90, 1,0,0)
-		#gluPerspective(45, (display[0]/display[1]), 0.1, 10000)
+
 		glDrawElements(GL_LINES, len(returnedLumps[3]), GL_UNSIGNED_SHORT,None)
 
 		pygame.display.flip()
