@@ -45,22 +45,6 @@ def EdgesCallback(raw, length,returnedLumps, myindex):
 	edges = GetChunks(raw, length, "HH")
 	returnedLumps[myindex]=np.array(edges, dtype=np.int16)
 
-	# edgeList = []
-	# for x1,x2 in edges:
-	# 	print(x1,x2)
-	# 	if x1==0 or x2==0: continue
-	# 	edgeList.append((vertices[x1],vertices[x2]))
-	# for edge in edgeList:
-	# 	print(edge)
-	# fig = plt.figure()
-	# ax = fig.add_subplot(111, projection='3d')
-	# x=[]
-	# y=[]
-	# z=[]
-	# for p in edgeList:
-	# 	ax.plot([p[0][0],p[1][0]],[p[0][1],p[1][1]],[p[0][2],p[1][2]])
-	# plt.show()
-
 
 
 gCallbacks = {
@@ -96,6 +80,32 @@ def ProgramWithShader(vertexShader):
 	glUseProgram(prog);
 	pe()
 	print("Program done")
+
+class Camera():
+	def __init__(self,display,x=0.0,y=0.0,z=0.0,pitch=0.0,yaw=0.0,roll=0.0,fov=45.0):
+		self.pos = np.array([x,y,z],dtype=np.float32)
+		self.angle = np.array([pitch,roll,yaw],dtype=np.float32)
+		self.fov = fov
+		self.display = display
+
+	def updateView(self):
+		glLoadIdentity()
+		gluPerspective(45, (self.display[0]/self.display[1]), 0.1, 10000)
+		glRotatef(-self.angle[0],1,0,0);
+		glRotatef(-self.angle[1],0,1,0)
+		glRotatef(-self.angle[2],0,0,1)
+		glTranslatef(*self.pos)
+
+	# du - forward backward, dw - left right
+	def moveLocal(self,du,dw):
+		#angle=-90
+		#pos[0] should decrease
+		self.pos[0]-=dw*np.sin(np.radians(self.angle[2]))+du*np.cos(np.radians(self.angle[2]))
+		self.pos[1]+=dw*np.cos(np.radians(self.angle[2]))-du*np.sin(np.radians(self.angle[2]))
+		print(self.pos)
+		print(self.angle[2])
+		print(du,dw)
+
 
 def main(lumpNames, callbacks):
 	testverts = np.concatenate(np.array([[0,0,0], [0,100,0], [100,100,0]], dtype=np.float32))
@@ -154,7 +164,7 @@ def main(lumpNames, callbacks):
 	glEnableVertexAttribArray(0);
 	# pe()
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*4, ctypes.c_void_p(0)); #or None
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); #or None
 	# pe()
 
 	# describe the edges (element buffer)
@@ -162,9 +172,8 @@ def main(lumpNames, callbacks):
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[12], GL_STATIC_DRAW);
 
 	#glViewport(0,0,400,400)
-	gluPerspective(45, (display[0]/display[1]), 0.1, 10000)
-	glTranslatef(0,-50,-300)
-	glRotatef(-90, 1,0,0)
+	cam = Camera(display,0,-50,-300,90,0,0)
+	pygame.event.set_grab(True) # lock mouse
 	while True:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -176,25 +185,41 @@ def main(lumpNames, callbacks):
 			#	print(transMatrix)
 		keys = pygame.key.get_pressed()
 		if keys[pygame.K_d]:
-			glTranslatef(-10,0,0)
+			cam.moveLocal(10,0)
 		if keys[pygame.K_a]:
-			glTranslatef(10,0,0)
+			cam.moveLocal(-10,0)
 		if keys[pygame.K_UP]:
-			glTranslatef(0,0,-10)
+			cam.pos[2]-=10
 		if keys[pygame.K_DOWN]:
-			glTranslatef(0,0,10)
+			cam.pos[2]+=10
 		if keys[pygame.K_q]:
-			glRotatef(-2,0,0,1)
+			cam.angle[2]+=1
 		if keys[pygame.K_e]:
-			glRotatef(2,0,0,1)
+			cam.angle[2]-=1
 		if keys[pygame.K_w]:
-			glTranslatef(0,-10,0)
+			cam.moveLocal(0,-10)
 		if keys[pygame.K_s]:
-			glTranslatef(0,10,0)
+			cam.moveLocal(0,10)
+		if keys[pygame.K_i]:
+			cam.pos = np.array([0,0,0])
+			cam.angle = np.array([0,0,0,0])
+
+		if keys[pygame.K_ESCAPE]:
+			pygame.event.set_grab(pygame.event.get_grab()^1) # lock mouse
 
 
-		
+		x,y = pygame.mouse.get_rel()
+		if pygame.mouse.get_pressed()[0]:
+			cam.angle[2]+=x*0.1
+			cam.angle[0]+=y*0.1
+
+
+		cam.updateView();
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+		#glLoadIdentity()
+		#glTranslatef(0,-50,-300)
+		#glRotatef(-90, 1,0,0)
+		#gluPerspective(45, (display[0]/display[1]), 0.1, 10000)
 		glDrawElements(GL_LINES, len(returnedLumps[3]), GL_UNSIGNED_SHORT,None)
 
 		pygame.display.flip()
