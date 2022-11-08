@@ -75,16 +75,27 @@ void main () {
     gl_Position = vec4(pos.x,pos.y,pos.z, 1.0f);
 }""" # lub pos
 
-frag_shader1 = """#version 410
-out vec4 FragColor;
-
-void main()
-{
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-} """
 
 def pe():
 	print("error",glGetError())
+
+
+def ProgramWithShader(vertexShader):
+	#shader
+	prog = glCreateProgram()
+	shader = glCreateShader(GL_VERTEX_SHADER)
+	glShaderSource(shader, vertexShader)
+	pe()
+	glCompileShader(shader);
+	glAttachShader(prog, shader);
+	
+	pe()
+	glLinkProgram(prog);
+	print("LOG:",glGetProgramInfoLog(prog))
+	pe()
+	glUseProgram(prog);
+	pe()
+	print("Program done")
 
 def main(lumpNames, callbacks):
 	testverts = np.concatenate(np.array([[0,0,0], [0,100,0], [100,100,0]], dtype=np.float32))
@@ -121,47 +132,23 @@ def main(lumpNames, callbacks):
 	print('Renderer:', renderer)  # Renderer: b'Intel Iris Pro OpenGL Engine'
 	print('OpenGL version supported: ', version)  # OpenGL version supported:  b'4.1 INTEL-10.12.13'
 
-	glEnableClientState(GL_VERTEX_ARRAY)
-	pe()
+	#glEnableClientState(GL_VERTEX_ARRAY) #this is not needed?
 
-	#shader
-	prog = glCreateProgram()
-	shader = glCreateShader(GL_VERTEX_SHADER)
-	glShaderSource(shader, vertex_shader1)
-	pe()
-	glCompileShader(shader);
-	glAttachShader(prog, shader);
-	
-	pe()
-	glLinkProgram(prog);
-	print("LOG:",glGetProgramInfoLog(prog))
-	pe()
-	#glUseProgram(prog);
-	pe()
-	print("Program done")
+	#ProgramWithShader(vertex_shader1)
 	# #init buffers
 	vinfo = GLuint()
-	# pe()
 	glGenVertexArrays(1, vinfo)
-	# pe()
 	glBindVertexArray(vinfo)
-	# pe()
 	b1 = GLuint()
-	# pe()
 	glGenBuffers(1, b1)
-	# pe()
 
 	indexBuffer = GLuint()
-	pe()
 	glGenBuffers(1, indexBuffer);
-	pe()
 
 
 	# # tell OpenGL to use the b1 buffer for rendering, and give it data
 	glBindBuffer(GL_ARRAY_BUFFER, b1)
-	# pe()
 	glBufferData(GL_ARRAY_BUFFER, returnedLumps[3], GL_STATIC_DRAW)
-	# pe()
 
 	# # describe what the data is (3x float)
 	glEnableVertexAttribArray(0);
@@ -172,10 +159,8 @@ def main(lumpNames, callbacks):
 
 	# describe the edges (element buffer)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-	pe()
-	print(returnedLumps[12])
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[12], GL_STATIC_DRAW);
-	pe()
+
 	#glViewport(0,0,400,400)
 	gluPerspective(45, (display[0]/display[1]), 0.1, 10000)
 	glTranslatef(0,-50,-300)
@@ -210,16 +195,7 @@ def main(lumpNames, callbacks):
 
 		
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-		# glBegin(GL_LINES)
-		# for edge in returnedLumps[12]:
-		# 	for vertex in edge:
-		# 		glVertex3fv(returnedLumps[3][vertex])
 		glDrawElements(GL_LINES, len(returnedLumps[3]), GL_UNSIGNED_SHORT,None)
-		#pe()
-		#glDrawArrays(GL_LINES, 0, len(returnedLumps[3]));
-		#pe()
-		#print(glGetError())
-		# glEnd()
 
 		pygame.display.flip()
 		pygame.time.wait(10)
