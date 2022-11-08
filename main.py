@@ -78,7 +78,7 @@ def pe():
 	print("error",glGetError())
 
 def main(lumpNames, callbacks):
-	testverts = np.array([[0,0,0], [0,5,0], [5,5,0]])
+	testverts = np.array([0,0,0, 0,5,0, 5,5,0])
 	testedges = np.array([[0,1],[1,2],[2,0]])
 
 	returnedLumps = [[] for _ in range(len(lumpNames))]
@@ -97,8 +97,8 @@ def main(lumpNames, callbacks):
 				#print("calling",idx,hex(length))
 				callbacks[idx](rawData, length, returnedLumps, idx)
 
-	#returnedLumps[3]=testverts
-	#returnedLumps[12]=testedges
+	# returnedLumps[3]=testverts
+	# returnedLumps[12]=testedges
 	#after parsing
 	pygame.init()
 	display = (800,600)
@@ -131,15 +131,15 @@ def main(lumpNames, callbacks):
 	# pe()
 	# print("Program done")
 	# #init buffers
-	# vinfo = GLuint()
+	vinfo = GLuint()
 	# pe()
-	# glGenVertexArrays(1, vinfo)
+	glGenVertexArrays(1, vinfo)
 	# pe()
-	# glBindVertexArray(vinfo)
+	glBindVertexArray(vinfo)
 	# pe()
-	# b1 = GLuint()
+	b1 = GLuint()
 	# pe()
-	# glGenBuffers(1, b1)
+	glGenBuffers(1, b1)
 	# pe()
 
 	# indexBuffer = GLuint()
@@ -149,16 +149,16 @@ def main(lumpNames, callbacks):
 
 
 	# # tell OpenGL to use the b1 buffer for rendering, and give it data
-	# glBindBuffer(GL_ARRAY_BUFFER, b1)
+	glBindBuffer(GL_ARRAY_BUFFER, b1)
 	# pe()
-	# glBufferData(GL_ARRAY_BUFFER, returnedLumps[3], GL_STATIC_DRAW)
+	glBufferData(GL_ARRAY_BUFFER, returnedLumps[3], GL_STATIC_DRAW)
 	# pe()
 
 	# # describe what the data is (3x float)
-	# glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(0);
 	# pe()
 
-	# glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	# pe()
 
 	# # describe the edges (element buffer)
@@ -192,16 +192,15 @@ def main(lumpNames, callbacks):
 
 		
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-		glBegin(GL_LINES)
-		for edge in returnedLumps[12]:
-			for vertex in edge:
-				#print(returnedLumps[3][vertex])
-				glVertex3fv(returnedLumps[3][vertex])
-		# glDrawElements(GL_LINES, len(returnedLumps[12]), GL_UNSIGNED_SHORT,None)
-		# pe()
-		#glDrawArrays(GL_LINES, 0, len(returnedLumps[12]));
+		# glBegin(GL_LINES)
+		# for edge in returnedLumps[12]:
+		# 	for vertex in edge:
+		# 		glVertex3fv(returnedLumps[3][vertex])
+		#glDrawElements(GL_LINES, len(returnedLumps[12]), GL_UNSIGNED_SHORT,None)
+		#pe()
+		glDrawArrays(GL_LINES, 0, len(returnedLumps[12]));
 		#print(glGetError())
-		glEnd()
+		# glEnd()
 
 		pygame.display.flip()
 		pygame.time.wait(10)
