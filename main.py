@@ -29,7 +29,8 @@ def GetChunks(raw,length, format):
 # do something with vertices, here I dump them to array of points
 def VerticesCallback(raw,length,returnedLumps, myindex):
 	vertices = GetChunks(raw, length, "fff") # xyz
-	returnedLumps[myindex]=np.array(vertices)
+	returnedLumps[myindex]=np.concatenate(np.array(vertices, dtype=np.float32))
+	print(returnedLumps[myindex])
 	#print(vertices)
 	#plot them
 	#fig = plt.figure()
@@ -42,7 +43,7 @@ def ClipnodesCallback(raw,length,returnedLumps, myindex):
 
 def EdgesCallback(raw, length,returnedLumps, myindex):
 	edges = GetChunks(raw, length, "HH")
-	returnedLumps[myindex]=np.array(edges)
+	returnedLumps[myindex]=np.array(edges, dtype=np.int16)
 
 	# edgeList = []
 	# for x1,x2 in edges:
@@ -86,11 +87,11 @@ def pe():
 	print("error",glGetError())
 
 def main(lumpNames, callbacks):
-	testverts = np.array([0,0,0, 0,100,0, 100,100,0], dtype=np.float32)
-	testedges = np.array([0,1,1,2,2,0])
+	testverts = np.concatenate(np.array([[0,0,0], [0,100,0], [100,100,0]], dtype=np.float32))
+	testedges = np.array([0,1,1,2,2,0], dtype=np.int16)
 
 	returnedLumps = [[] for _ in range(len(lumpNames))]
-	with open("ss2.bsp","rb") as bsp:
+	with open("dd2.bsp","rb") as bsp:
 		version, lumps = GetGoldsrcHeader(bsp)
 		print("version:",version)
 		print("lumps table:")
@@ -105,7 +106,7 @@ def main(lumpNames, callbacks):
 				#print("calling",idx,hex(length))
 				callbacks[idx](rawData, length, returnedLumps, idx)
 
-	returnedLumps[3]=testverts
+	#returnedLumps[3]=testverts
 	#returnedLumps[12]=testedges
 	#after parsing
 	pygame.init()
@@ -150,10 +151,10 @@ def main(lumpNames, callbacks):
 	glGenBuffers(1, b1)
 	# pe()
 
-	# indexBuffer = GLuint()
-	# pe()
-	# glGenBuffers(1, indexBuffer);
-	# pe()
+	indexBuffer = GLuint()
+	pe()
+	glGenBuffers(1, indexBuffer);
+	pe()
 
 
 	# # tell OpenGL to use the b1 buffer for rendering, and give it data
@@ -169,16 +170,16 @@ def main(lumpNames, callbacks):
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*4, ctypes.c_void_p(0)); #or None
 	# pe()
 
-	# # describe the edges (element buffer)
-	# glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-	# pe()
-	# print(returnedLumps[12])
-	# glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[12], GL_STATIC_DRAW);
-	# pe()
+	# describe the edges (element buffer)
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+	pe()
+	print(returnedLumps[12])
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[12], GL_STATIC_DRAW);
+	pe()
 	#glViewport(0,0,400,400)
 	gluPerspective(45, (display[0]/display[1]), 0.1, 10000)
 	glTranslatef(0,-50,-300)
-	#glRotatef(0, 90,90,0)
+	glRotatef(-90, 1,0,0)
 	while True:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -193,14 +194,19 @@ def main(lumpNames, callbacks):
 				glTranslatef(-10,0,0)
 			if keys[pygame.K_a]:
 				glTranslatef(10,0,0)
-			if keys[pygame.K_w]:
+			if keys[pygame.K_UP]:
 				glTranslatef(0,0,-10)
-			if keys[pygame.K_s]:
+			if keys[pygame.K_DOWN]:
 				glTranslatef(0,0,10)
-			if keys[pygame.K_LEFT]:
-				glRotatef(-10,0,1,0)
-			if keys[pygame.K_RIGHT]:
-				glRotatef(10,0,1,0)
+			if keys[pygame.K_q]:
+				glRotatef(-10,0,0,1)
+			if keys[pygame.K_e]:
+				glRotatef(10,0,0,1)
+			if keys[pygame.K_w]:
+				glTranslatef(0,-10,0)
+			if keys[pygame.K_s]:
+				glTranslatef(0,10,0)
+
 
 		
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
@@ -208,10 +214,10 @@ def main(lumpNames, callbacks):
 		# for edge in returnedLumps[12]:
 		# 	for vertex in edge:
 		# 		glVertex3fv(returnedLumps[3][vertex])
-		#glDrawElements(GL_LINES, len(returnedLumps[12]), GL_UNSIGNED_SHORT,None)
+		glDrawElements(GL_LINES, len(returnedLumps[3]), GL_UNSIGNED_SHORT,None)
 		#pe()
-		glDrawArrays(GL_TRIANGLES, 0, len(returnedLumps[3]));
-		pe()
+		#glDrawArrays(GL_LINES, 0, len(returnedLumps[3]));
+		#pe()
 		#print(glGetError())
 		# glEnd()
 
