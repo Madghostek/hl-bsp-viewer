@@ -71,15 +71,23 @@ gCallbacks = {
 vertex_shader1 = """#version 410
 layout(location = 0) in vec3 pos;
 void main () {
-    gl_Position = vec4(pos, 1.0f);
-}"""
+    gl_Position = vec4(pos.x,pos.y,pos.z, 1.0f);
+}""" # lub pos
+
+frag_shader1 = """#version 410
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+} """
 
 def pe():
 	print("error",glGetError())
 
 def main(lumpNames, callbacks):
-	testverts = np.array([0,0,0, 0,5,0, 5,5,0])
-	testedges = np.array([[0,1],[1,2],[2,0]])
+	testverts = np.array([0,0,0, 0,100,0, 100,100,0], dtype=np.float32)
+	testedges = np.array([0,1,1,2,2,0])
 
 	returnedLumps = [[] for _ in range(len(lumpNames))]
 	with open("ss2.bsp","rb") as bsp:
@@ -97,8 +105,8 @@ def main(lumpNames, callbacks):
 				#print("calling",idx,hex(length))
 				callbacks[idx](rawData, length, returnedLumps, idx)
 
-	# returnedLumps[3]=testverts
-	# returnedLumps[12]=testedges
+	returnedLumps[3]=testverts
+	#returnedLumps[12]=testedges
 	#after parsing
 	pygame.init()
 	display = (800,600)
@@ -107,29 +115,29 @@ def main(lumpNames, callbacks):
 
 	#OpenGL version
 
-	# renderer = glGetString(GL_RENDERER)
-	# version = glGetString(GL_VERSION)
-	# print('Renderer:', renderer)  # Renderer: b'Intel Iris Pro OpenGL Engine'
-	# print('OpenGL version supported: ', version)  # OpenGL version supported:  b'4.1 INTEL-10.12.13'
+	renderer = glGetString(GL_RENDERER)
+	version = glGetString(GL_VERSION)
+	print('Renderer:', renderer)  # Renderer: b'Intel Iris Pro OpenGL Engine'
+	print('OpenGL version supported: ', version)  # OpenGL version supported:  b'4.1 INTEL-10.12.13'
 
-	# glEnableClientState(GL_VERTEX_ARRAY)
-	# pe()
+	glEnableClientState(GL_VERTEX_ARRAY)
+	pe()
 
-	# #shader
-	# prog = glCreateProgram()
-	# shader = glCreateShader(GL_VERTEX_SHADER)
-	# glShaderSource(shader, vertex_shader1)
-	# pe()
-	# glCompileShader(shader);
-	# glAttachShader(prog, shader);
+	#shader
+	prog = glCreateProgram()
+	shader = glCreateShader(GL_VERTEX_SHADER)
+	glShaderSource(shader, vertex_shader1)
+	pe()
+	glCompileShader(shader);
+	glAttachShader(prog, shader);
 	
-	# pe()
-	# glLinkProgram(prog);
-	# print("LOG:",glGetProgramInfoLog(prog))
-	# pe()
-	# #glUseProgram(prog);
-	# pe()
-	# print("Program done")
+	pe()
+	glLinkProgram(prog);
+	print("LOG:",glGetProgramInfoLog(prog))
+	pe()
+	#glUseProgram(prog);
+	pe()
+	print("Program done")
 	# #init buffers
 	vinfo = GLuint()
 	# pe()
@@ -158,7 +166,7 @@ def main(lumpNames, callbacks):
 	glEnableVertexAttribArray(0);
 	# pe()
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*4, ctypes.c_void_p(0)); #or None
 	# pe()
 
 	# # describe the edges (element buffer)
@@ -167,15 +175,19 @@ def main(lumpNames, callbacks):
 	# print(returnedLumps[12])
 	# glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[12], GL_STATIC_DRAW);
 	# pe()
-
+	#glViewport(0,0,400,400)
 	gluPerspective(45, (display[0]/display[1]), 0.1, 10000)
-	#glTranslatef(-3000,-3000,0)
+	glTranslatef(0,-50,-300)
 	#glRotatef(0, 90,90,0)
 	while True:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
 				quit()
+			#if event.type == pygame.KEYDOWN:
+			#	transMatrix = [];
+			#	glGetFloatv(GL_MODELVIEW_MATRIX, transMatrix);
+			#	print(transMatrix)
 			keys = pygame.key.get_pressed()
 			if keys[pygame.K_d]:
 				glTranslatef(-10,0,0)
@@ -198,7 +210,8 @@ def main(lumpNames, callbacks):
 		# 		glVertex3fv(returnedLumps[3][vertex])
 		#glDrawElements(GL_LINES, len(returnedLumps[12]), GL_UNSIGNED_SHORT,None)
 		#pe()
-		glDrawArrays(GL_LINES, 0, len(returnedLumps[12]));
+		glDrawArrays(GL_TRIANGLES, 0, len(returnedLumps[3]));
+		pe()
 		#print(glGetError())
 		# glEnd()
 
