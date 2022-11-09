@@ -1,5 +1,6 @@
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from BSP import LumpsEnum
 # Config
 ########
 useCustomShader = True
@@ -94,14 +95,14 @@ def SetupOpenGL(returnedLumps):
 	if useCustomShader == True:
 
 		# get world bounds:
-		print(returnedLumps[3])
-		for vert in returnedLumps[3]:
-			minx = returnedLumps[3][:,0].min()
-			miny = returnedLumps[3][:,1].min()
-			minz = returnedLumps[3][:,2].min()
-			maxx = returnedLumps[3][:,0].max()
-			maxy = returnedLumps[3][:,1].max()
-			maxz = returnedLumps[3][:,2].max()
+		print(returnedLumps[LumpsEnum.LUMP_VERTICES.value])
+		for vert in returnedLumps[LumpsEnum.LUMP_VERTICES.value]:
+			minx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,0].min()
+			miny = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,1].min()
+			minz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,2].min()
+			maxx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,0].max()
+			maxy = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,1].max()
+			maxz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,2].max()
 		print(minx,miny,minz,maxx,maxy,maxz)
 
 		program = ProgramWithShader(vertex_shader_perspective, fragment_shader)
@@ -127,7 +128,7 @@ def SetupOpenGL(returnedLumps):
 
 	# # tell OpenGL to use the b1 buffer for rendering, and give it data
 	glBindBuffer(GL_ARRAY_BUFFER, b1)
-	glBufferData(GL_ARRAY_BUFFER, returnedLumps[3], GL_STATIC_DRAW)
+	glBufferData(GL_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_VERTICES.value], GL_STATIC_DRAW)
 
 	# # describe what the data is (3x float)
 	glEnableVertexAttribArray(0);
@@ -138,10 +139,10 @@ def SetupOpenGL(returnedLumps):
 
 	# describe the edges (element buffer)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[12], GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_EDGES.value], GL_STATIC_DRAW);
 
-	gDrawCount = len(returnedLumps[12])*2
-	print(returnedLumps[12])
+	gDrawCount = len(returnedLumps[LumpsEnum.LUMP_EDGES.value])*2
+	print(returnedLumps[LumpsEnum.LUMP_EDGES.value])
 	print("DRAWCOUNT",gDrawCount)
 
 def DrawOpenGL(cam,display):
