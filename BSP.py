@@ -1,9 +1,9 @@
 import struct, numpy as np
-from enum import Enum
+from enum import IntEnum
 
 gLumpNames = ["LUMP_ENTITIES","LUMP_PLANES","LUMP_TEXTURES","LUMP_VERTICES","LUMP_VISIBILITY","LUMP_NODES","LUMP_TEXINFO","LUMP_FACES","LUMP_LIGHTING","LUMP_CLIPNODES","LUMP_LEAVES","LUMP_MARKSURFACES","LUMP_EDGES","LUMP_SURFEDGES","LUMP_MODELS","HEADER_LUMPS"]
 
-class LumpsEnum(Enum):
+class LumpsEnum(IntEnum):
 	LUMP_ENTITIES = 0
 	LUMP_PLANES = 1
 	LUMP_TEXTURES = 2
@@ -45,7 +45,12 @@ def VerticesCallback(raw,length,returnedLumps):
 	returnedLumps[LumpsEnum.LUMP_VERTICES.value]=np.array(vertices, dtype=np.float32)
 
 def FacesCallback(raw,length, returnedLumps):
-	faces = GetChunks(raw, length, "ihh")
+	# planes index, orientation (bool), index of first surfedge, number of next surfedges, index into textureinfo, 4 lighting styles, lightmap offset
+	
+	# right now only surfedges are interesting for me
+	faces = GetChunks(raw, length, "hhihh4bi")
+	onlyEdges = [(face[2],face[3]) for face in faces]
+	returnedLumps[LumpsEnum.LUMP_FACES.value]=np.array(onlyEdges)
 
 def ClipnodesCallback(raw,length,returnedLumps):
 	nodes = GetChunks(raw, length, "ihh") # int32 planes index, int16[2] children?
