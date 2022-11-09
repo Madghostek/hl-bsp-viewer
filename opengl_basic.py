@@ -79,10 +79,41 @@ def ProgramWithShader(vertexShader, fragmentShader = None):
 	print("Program done")
 	return prog
 
+def PrepareEdges(returnedLumps):
+	global gBuffers, gDrawCount
+
+	# #init buffers
+	vinfo = GLuint()
+	glGenVertexArrays(1, vinfo)
+	glBindVertexArray(vinfo)
+	b1 = GLuint()
+	glGenBuffers(1, b1)
+
+	indexBuffer = GLuint()
+	glGenBuffers(1, indexBuffer);
+
+	gBuffers = [vinfo,b1,indexBuffer]
+
+	# # tell OpenGL to use the b1 buffer for rendering, and give it data
+	glBindBuffer(GL_ARRAY_BUFFER, b1)
+	glBufferData(GL_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_VERTICES.value], GL_STATIC_DRAW)
+
+	# # describe what the data is (3x float)
+	glEnableVertexAttribArray(0);
+	# pe()
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); #or None
+	# pe()
+
+	# describe the edges (element buffer)
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_EDGES.value], GL_STATIC_DRAW);
+
+	return len(returnedLumps[LumpsEnum.LUMP_EDGES.value])*2
+
 def SetupOpenGL(returnedLumps):
 	global gDrawCount
 	global gProjectionMatrixHandle
-	global gBuffers
 
 	#OpenGL version
 	renderer = glGetString(GL_RENDERER)
@@ -113,35 +144,8 @@ def SetupOpenGL(returnedLumps):
 		glUniform1f(ymaxHandle, maxy)
 		assert (gProjectionMatrixHandle!=-1)
 
-	# #init buffers
-	vinfo = GLuint()
-	glGenVertexArrays(1, vinfo)
-	glBindVertexArray(vinfo)
-	b1 = GLuint()
-	glGenBuffers(1, b1)
+	gDrawCount = PrepareEdges(returnedLumps)
 
-	indexBuffer = GLuint()
-	glGenBuffers(1, indexBuffer);
-
-	gBuffers = [vinfo,b1,indexBuffer]
-
-
-	# # tell OpenGL to use the b1 buffer for rendering, and give it data
-	glBindBuffer(GL_ARRAY_BUFFER, b1)
-	glBufferData(GL_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_VERTICES.value], GL_STATIC_DRAW)
-
-	# # describe what the data is (3x float)
-	glEnableVertexAttribArray(0);
-	# pe()
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); #or None
-	# pe()
-
-	# describe the edges (element buffer)
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_EDGES.value], GL_STATIC_DRAW);
-
-	gDrawCount = len(returnedLumps[LumpsEnum.LUMP_EDGES.value])*2
 	print(returnedLumps[LumpsEnum.LUMP_EDGES.value])
 	print("DRAWCOUNT",gDrawCount)
 

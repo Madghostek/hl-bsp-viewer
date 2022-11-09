@@ -81,11 +81,11 @@ def GetBSPData(fname):
 		for idx,element in enumerate(lumps):
 			offset,length = element
 			rawData = GetRawLump(bsp,offset,length)
-			print(idx,offset,length)
+			#print(idx,offset,length)
 			#with open(lumpNames[idx]+".raw","wb") as f:
 				#f.write(rawData)
 
 			if idx in gCallbacks:
 				gCallbacks[idx](rawData, length, returnedLumps)
-				print(idx,"Result:",returnedLumps[idx])
+				print(LumpsEnum(idx).name,"Result:",returnedLumps[idx])
 	return returnedLumps
