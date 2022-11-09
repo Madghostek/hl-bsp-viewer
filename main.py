@@ -29,12 +29,7 @@ def GetChunks(raw,length, format):
 # do something with vertices, here I dump them to array of points
 def VerticesCallback(raw,length,returnedLumps, myindex):
 	vertices = GetChunks(raw, length, "fff") # xyz
-	returnedLumps[myindex]=np.concatenate(np.array(vertices, dtype=np.float32))
-	print(returnedLumps[myindex])
-	#print(vertices)
-	#plot them
-	#fig = plt.figure()
-	#ax = fig.add_subplot(111, projection='3d')
+	returnedLumps[myindex]=np.array(vertices, dtype=np.float32)
 
 def ClipnodesCallback(raw,length,returnedLumps, myindex):
 	nodes = GetChunks(raw, length, "ihh") # int32 planes index, int16[2] children?
@@ -60,6 +55,7 @@ uniform mat4 projection_matrix;
 out vec4 position;
 void main () {
     gl_Position = projection_matrix*vec4(pos, 1.0f);
+    position = vec4(pos, 1.0f);;
 }""" # lub pos
 
 fragment_shader = """#version 410
@@ -67,9 +63,12 @@ fragment_shader = """#version 410
 in vec4 position;
 out vec4 FragColor;
 
+uniform float ymin;
+uniform float ymax;
+
 void main(){
 
-	FragColor = vec4(position.x,position.y,position.z, 1.0);
+	FragColor = vec4(1,(position.y-ymin)/(ymax-ymin)-0.5,(position.y-ymin)/(ymax-ymin)+0.5, 1.0);
 }"""
 
 
@@ -112,11 +111,15 @@ def ProgramWithShader(vertexShader, fragmentShader = None):
 	return prog
 
 class Camera():
-	def __init__(self,display,x=0.0,y=0.0,z=0.0,pitch=0.0,yaw=0.0,roll=0.0,fov=45.0):
+
+	def __init__(self,x=0.0,y=0.0,z=0.0,pitch=0.0,yaw=0.0,roll=0.0,fov=45.0):
 		self.pos = np.array([x,y,z],dtype=np.float32)
 		self.angle = np.array([pitch,roll,yaw],dtype=np.float32)
 		self.fov = fov
-		self.display = display
+
+		self.defaultpos = self.pos.copy()
+		self.defaultangle = self.angle.copy()
+		self.defaultfov = self.fov
 
 	def updateView(self):
 		glRotatef(-self.angle[0],1,0,0);
@@ -134,6 +137,11 @@ class Camera():
 		#print(self.angle[2])
 		#print(du,dw)
 
+	def reset(self):
+		print("reset")
+		self.angle = self.defaultangle.copy()
+		self.fov = self.defaultfov
+		self.pos = self.defaultpos.copy()
 
 def main(lumpNames, callbacks):
 
@@ -160,6 +168,17 @@ def main(lumpNames, callbacks):
 
 	#returnedLumps[3]=testverts
 	#returnedLumps[12]=testedges
+
+	# get world bounds:
+	print(returnedLumps[3])
+	for vert in returnedLumps[3]:
+		minx = returnedLumps[3][:,0].min()
+		miny = returnedLumps[3][:,1].min()
+		minz = returnedLumps[3][:,2].min()
+		maxx = returnedLumps[3][:,0].max()
+		maxy = returnedLumps[3][:,1].max()
+		maxz = returnedLumps[3][:,2].max()
+	print(minx,miny,minz,maxx,maxy,maxz)
 	#after parsing
 	pygame.init()
 	display = (800,600)
@@ -177,7 +196,11 @@ def main(lumpNames, callbacks):
 
 	if useCustomShader == True:
 		program = ProgramWithShader(vertex_shader_perspective, fragment_shader)
-		projectionMatrixHandle = glGetUniformLocation(program, "projection_matrix");
+		projectionMatrixHandle = glGetUniformLocation(program, "projection_matrix")
+		yminHandle = glGetUniformLocation(program, "ymin")
+		ymaxHandle = glGetUniformLocation(program, "ymax")
+		glUniform1f(yminHandle, miny)
+		glUniform1f(ymaxHandle, maxy)
 		assert (projectionMatrixHandle!=-1)
 
 	# #init buffers
@@ -207,18 +230,19 @@ def main(lumpNames, callbacks):
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[12], GL_STATIC_DRAW);
 
 	#glViewport(0,0,400,400)
-	cam = Camera(display,0,-50,-300,90,0,0)
+	cam = Camera(0,-50,-300,90,0,0)
 	pygame.event.set_grab(True) # lock mouse
 	while True:
+		keys = pygame.key.get_pressed()
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
 				quit()
-			#if event.type == pygame.KEYDOWN:
-			#	transMatrix = [];
-			#	glGetFloatv(GL_MODELVIEW_MATRIX, transMatrix);
-			#	print(transMatrix)
-		keys = pygame.key.get_pressed()
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_ESCAPE:
+					pygame.event.set_grab(pygame.event.get_grab()^1) # lock mouse
+				if event.key == pygame.K_r and pygame.key.get_mods() & pygame.KMOD_CTRL:
+					cam.reset()
 		if keys[pygame.K_d]:
 			cam.moveLocal(10,0)
 		if keys[pygame.K_a]:
@@ -238,9 +262,6 @@ def main(lumpNames, callbacks):
 		if keys[pygame.K_i]:
 			cam.pos = np.array([0,0,0])
 			cam.angle = np.array([0,0,0,0])
-
-		if keys[pygame.K_ESCAPE]:
-			pygame.event.set_grab(pygame.event.get_grab()^1) # lock mouse
 
 
 		x,y = pygame.mouse.get_rel()
