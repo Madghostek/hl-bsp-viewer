@@ -81,7 +81,10 @@ def main():
 
 		pygame.display.flip()
 		pygame.time.wait(10)
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, indexBuffer);
+
+	# cleanup @TODO: Move this to quit event :|
+	print("exit")
+	CleanupOpenGL()
+
 if __name__=="__main__":
 	main()

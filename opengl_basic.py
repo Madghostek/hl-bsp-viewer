@@ -10,6 +10,8 @@ useCustomShader = True
 gProjectionMatrixHandle = -1
 gDrawCount = -1
 
+gBuffers = []
+
 vertex_shader_perspective = """#version 410
 layout(location = 0) in vec3 pos;
 uniform mat4 projection_matrix;
@@ -79,6 +81,7 @@ def ProgramWithShader(vertexShader, fragmentShader = None):
 def SetupOpenGL(returnedLumps):
 	global gDrawCount
 	global gProjectionMatrixHandle
+	global gBuffers
 
 	#OpenGL version
 	renderer = glGetString(GL_RENDERER)
@@ -119,6 +122,8 @@ def SetupOpenGL(returnedLumps):
 	indexBuffer = GLuint()
 	glGenBuffers(1, indexBuffer);
 
+	gBuffers = [vinfo,b1,indexBuffer]
+
 
 	# # tell OpenGL to use the b1 buffer for rendering, and give it data
 	glBindBuffer(GL_ARRAY_BUFFER, b1)
@@ -153,3 +158,14 @@ def DrawOpenGL():
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
 	glDrawElements(GL_LINES, gDrawCount, GL_UNSIGNED_SHORT,None)	
+
+def CleanUpOpenGL():
+	global gBuffers
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, gBuffers[2]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, gBuffers[1]);
+
+	glBindVertexArray(0)
+	glDeleteVertexArrays(gBuffers[0])
