@@ -1,13 +1,31 @@
 import struct, numpy as np
+from enum import Enum
 
 gLumpNames = ["LUMP_ENTITIES","LUMP_PLANES","LUMP_TEXTURES","LUMP_VERTICES","LUMP_VISIBILITY","LUMP_NODES","LUMP_TEXINFO","LUMP_FACES","LUMP_LIGHTING","LUMP_CLIPNODES","LUMP_LEAVES","LUMP_MARKSURFACES","LUMP_EDGES","LUMP_SURFEDGES","LUMP_MODELS","HEADER_LUMPS"]
 
+class LumpsEnum(Enum):
+	LUMP_ENTITIES = 0
+	LUMP_PLANES = 1
+	LUMP_TEXTURES = 2
+	LUMP_VERTICES = 3
+	LUMP_VISIBILITY = 4
+	LUMP_NODES = 5
+	LUMP_TEXINFO = 6
+	LUMP_FACES = 7
+	LUMP_LIGHTING = 8
+	LUMP_CLIPNODES = 9
+	LUMP_LEAVES = 10
+	LUMP_MARKSURFACES = 11
+	LUMP_EDGES = 12
+	LUMP_SURFEDGES = 13
+	LUMP_MODELS = 14
+	HEADER_LUMPS = 15
 
-# basic code that parses BSP header:
+# basic code that parses BSP header, returns two values, version and 15 tuples (lump infos)
 def GetGoldsrcHeader(file):
 	header = struct.Struct("i30i")
 	data = header.unpack(file.read(header.size))
-	return data[0],zip(data[1::2],data[2::2]) # version and lumps
+	return data[0],zip(data[1::2],data[2::2])
 
 # reads lump from stream
 def GetRawLump(file,offset,nbytes):
@@ -22,31 +40,35 @@ def GetChunks(raw,length, format):
 	return [chunk.unpack(raw[part*size:(part+1)*size]) for part in range(length//size)]
 
 # do something with vertices, here I dump them to array of points
-def VerticesCallback(raw,length,returnedLumps, myindex):
+def VerticesCallback(raw,length,returnedLumps):
 	vertices = GetChunks(raw, length, "fff") # xyz
-	returnedLumps[myindex]=np.array(vertices, dtype=np.float32)
+	returnedLumps[LumpsEnum.LUMP_VERTICES.value]=np.array(vertices, dtype=np.float32)
 
-def ClipnodesCallback(raw,length,returnedLumps, myindex):
+def FacesCallback(raw,length, returnedLumps):
+	faces = GetChunks(raw, length, "ihh")
+
+def ClipnodesCallback(raw,length,returnedLumps):
 	nodes = GetChunks(raw, length, "ihh") # int32 planes index, int16[2] children?
 	for index,data1,data2 in nodes:
 		print(index,hex(data1),hex(data2))
 
-def EdgesCallback(raw, length,returnedLumps, myindex):
+def EdgesCallback(raw, length,returnedLumps):
 	edges = GetChunks(raw, length, "HH")
-	returnedLumps[myindex]=np.array(edges, dtype=np.int16)
+	returnedLumps[LumpsEnum.LUMP_EDGES.value]=np.array(edges, dtype=np.int16)
 
-def SurfedgesCallback(raw,length,returnedLumps,myindex):
-	returnedLumps[myindex]=np.array(GetChunks(raw,length,"i"), dtype=np.int32) # signed ints, indexes into edges
+def SurfedgesCallback(raw,length,returnedLumps):
+	returnedLumps[LumpsEnum.LUMP_SURFEDGES.value]=np.array(GetChunks(raw,length,"i"), dtype=np.int32) # signed ints, indexes into edges
 
 gCallbacks = {
-	3: VerticesCallback, # used only for edges
+	LumpsEnum.LUMP_VERTICES.value: VerticesCallback, # used only for edges
+	LumpsEnum.LUMP_FACES.value: FacesCallback,
 	#9: ClipnodesCallback,
-	12: EdgesCallback,
-	13: SurfedgesCallback
+	LumpsEnum.LUMP_EDGES.value: EdgesCallback,
+	LumpsEnum.LUMP_SURFEDGES.value: SurfedgesCallback
 }
 
 def GetBSPData(fname):
-	returnedLumps = [[] for _ in range(len(gLumpNames))]
+	returnedLumps = [[False] for _ in range(len(gLumpNames))]
 	with open(fname,"rb") as bsp:
 		version, lumps = GetGoldsrcHeader(bsp)
 		print("version:",version)
@@ -59,6 +81,6 @@ def GetBSPData(fname):
 				#f.write(rawData)
 
 			if idx in gCallbacks:
-				gCallbacks[idx](rawData, length, returnedLumps, idx)
+				gCallbacks[idx](rawData, length, returnedLumps)
 				print(idx,"Result:",returnedLumps[idx])
 	return returnedLumps

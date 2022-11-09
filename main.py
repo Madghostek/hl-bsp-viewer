@@ -72,12 +72,7 @@ def main():
 			cam.angle[2]+=x*0.1
 			cam.angle[0]+=y*0.1
 
-		# everything is done on model matrix because its simpler
-		glLoadIdentity() # clear the model matrix
-		gluPerspective(45, (display[0]/display[1]), 0.1, 4000) # generate the perspective
-		UpdateViewToCamera(cam)
-
-		DrawOpenGL()
+		DrawOpenGL(cam,display)
 
 		pygame.display.flip()
 		pygame.time.wait(10)
