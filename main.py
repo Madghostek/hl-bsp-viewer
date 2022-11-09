@@ -5,6 +5,9 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
+from camera import Camera
+from opengl_basic import *
+
 gLumpNames = ["LUMP_ENTITIES","LUMP_PLANES","LUMP_TEXTURES","LUMP_VERTICES","LUMP_VISIBILITY","LUMP_NODES","LUMP_TEXINFO","LUMP_FACES","LUMP_LIGHTING","LUMP_CLIPNODES","LUMP_LEAVES","LUMP_MARKSURFACES","LUMP_EDGES","LUMP_SURFEDGES","LUMP_MODELS","HEADER_LUMPS"]
 
 
@@ -48,100 +51,11 @@ gCallbacks = {
 	12: EdgesCallback,
 }
 
-vertex_shader_perspective = """#version 410
-layout(location = 0) in vec3 pos;
-uniform mat4 projection_matrix;
-
-out vec4 position;
-void main () {
-    gl_Position = projection_matrix*vec4(pos, 1.0f);
-    position = vec4(pos, 1.0f);;
-}""" # lub pos
-
-fragment_shader = """#version 410
-
-in vec4 position;
-out vec4 FragColor;
-
-uniform float ymin;
-uniform float ymax;
-
-void main(){
-
-	FragColor = vec4(1,(position.y-ymin)/(ymax-ymin)-0.5,(position.y-ymin)/(ymax-ymin)+0.5, 1.0);
-}"""
-
-
-def pe():
-	print("error",glGetError())
-
-
-def ProgramWithShader(vertexShader, fragmentShader = None):
-	#shader
-	prog = glCreateProgram()
-	shader = glCreateShader(GL_VERTEX_SHADER)
-	glShaderSource(shader, vertexShader)
-	pe()
-	glCompileShader(shader);
-	res = glGetShaderiv(shader,GL_COMPILE_STATUS)
-	print("vertex shader compilation status:","OK" if res==GL_TRUE else "ERROR")
-	assert (res == GL_TRUE)
-	glAttachShader(prog, shader);
-	print("LOG:",glGetProgramInfoLog(prog))
-
-	if fragmentShader:
-		shader = glCreateShader(GL_FRAGMENT_SHADER)
-		glShaderSource(shader, fragmentShader)
-		pe()
-		glCompileShader(shader);
-		print("LOG:",glGetProgramInfoLog(prog))
-		glAttachShader(prog, shader)
-		res = glGetShaderiv(shader,GL_COMPILE_STATUS)
-		print("Fragment shader compilation status:","OK" if res==GL_TRUE else "ERROR")
-		assert (res == GL_TRUE)
-
-		
-
-	pe()
-	glLinkProgram(prog);
-	pe()
-	glUseProgram(prog);
-	pe()
-	print("Program done")
-	return prog
-
-class Camera():
-
-	def __init__(self,x=0.0,y=0.0,z=0.0,pitch=0.0,yaw=0.0,roll=0.0,fov=45.0):
-		self.pos = np.array([x,y,z],dtype=np.float32)
-		self.angle = np.array([pitch,roll,yaw],dtype=np.float32)
-		self.fov = fov
-
-		self.defaultpos = self.pos.copy()
-		self.defaultangle = self.angle.copy()
-		self.defaultfov = self.fov
-
-	def updateView(self):
-		glRotatef(-self.angle[0],1,0,0);
-		glRotatef(-self.angle[1],0,1,0)
-		glRotatef(-self.angle[2],0,0,1)
-		glTranslatef(*self.pos)
-
-	# du - forward backward, dw - left right
-	def moveLocal(self,du,dw):
-		#angle=-90
-		#pos[0] should decrease
-		self.pos[0]-=dw*np.sin(np.radians(self.angle[2]))+du*np.cos(np.radians(self.angle[2]))
-		self.pos[1]+=dw*np.cos(np.radians(self.angle[2]))-du*np.sin(np.radians(self.angle[2]))
-		#print(self.pos)
-		#print(self.angle[2])
-		#print(du,dw)
-
-	def reset(self):
-		print("reset")
-		self.angle = self.defaultangle.copy()
-		self.fov = self.defaultfov
-		self.pos = self.defaultpos.copy()
+def UpdateViewToCamera(c):
+	glRotatef(-c.angle[0],1,0,0);
+	glRotatef(-c.angle[1],0,1,0)
+	glRotatef(-c.angle[2],0,0,1)
+	glTranslatef(*c.pos)
 
 def main(lumpNames, callbacks):
 
@@ -151,7 +65,7 @@ def main(lumpNames, callbacks):
 	testedges = np.array([0,1,1,2,2,0], dtype=np.int16)
 
 	returnedLumps = [[] for _ in range(len(lumpNames))]
-	with open("surf_notbeginner.bsp","rb") as bsp:
+	with open("dd2.bsp","rb") as bsp:
 		version, lumps = GetGoldsrcHeader(bsp)
 		print("version:",version)
 		print("lumps table:")
@@ -159,75 +73,23 @@ def main(lumpNames, callbacks):
 			offset,length = element
 			rawData = GetRawLump(bsp,offset,length)
 			print(idx,offset,length)
-			with open(lumpNames[idx]+".raw","wb") as f:
-				f.write(rawData)
+			#with open(lumpNames[idx]+".raw","wb") as f:
+				#f.write(rawData)
 
 			if idx in callbacks:
 				#print("calling",idx,hex(length))
 				callbacks[idx](rawData, length, returnedLumps, idx)
 
+	#debug 
 	#returnedLumps[3]=testverts
 	#returnedLumps[12]=testedges
 
-	# get world bounds:
-	print(returnedLumps[3])
-	for vert in returnedLumps[3]:
-		minx = returnedLumps[3][:,0].min()
-		miny = returnedLumps[3][:,1].min()
-		minz = returnedLumps[3][:,2].min()
-		maxx = returnedLumps[3][:,0].max()
-		maxy = returnedLumps[3][:,1].max()
-		maxz = returnedLumps[3][:,2].max()
-	print(minx,miny,minz,maxx,maxy,maxz)
 	#after parsing
 	pygame.init()
 	display = (800,600)
 	pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
 
-
-	#OpenGL version
-
-	renderer = glGetString(GL_RENDERER)
-	version = glGetString(GL_VERSION)
-	print('Renderer:', renderer)  # Renderer: b'Intel Iris Pro OpenGL Engine'
-	print('OpenGL version supported: ', version)  # OpenGL version supported:  b'4.1 INTEL-10.12.13'
-
-	#glEnableClientState(GL_VERTEX_ARRAY) #this is not needed?
-
-	if useCustomShader == True:
-		program = ProgramWithShader(vertex_shader_perspective, fragment_shader)
-		projectionMatrixHandle = glGetUniformLocation(program, "projection_matrix")
-		yminHandle = glGetUniformLocation(program, "ymin")
-		ymaxHandle = glGetUniformLocation(program, "ymax")
-		glUniform1f(yminHandle, miny)
-		glUniform1f(ymaxHandle, maxy)
-		assert (projectionMatrixHandle!=-1)
-
-	# #init buffers
-	vinfo = GLuint()
-	glGenVertexArrays(1, vinfo)
-	glBindVertexArray(vinfo)
-	b1 = GLuint()
-	glGenBuffers(1, b1)
-
-	indexBuffer = GLuint()
-	glGenBuffers(1, indexBuffer);
-
-
-	# # tell OpenGL to use the b1 buffer for rendering, and give it data
-	glBindBuffer(GL_ARRAY_BUFFER, b1)
-	glBufferData(GL_ARRAY_BUFFER, returnedLumps[3], GL_STATIC_DRAW)
-
-	# # describe what the data is (3x float)
-	glEnableVertexAttribArray(0);
-	# pe()
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); #or None
-	# pe()
-
-	# describe the edges (element buffer)
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[12], GL_STATIC_DRAW);
+	SetupOpenGL(returnedLumps)
 
 	#glViewport(0,0,400,400)
 	cam = Camera(0,-50,-300,90,0,0)
@@ -243,22 +105,24 @@ def main(lumpNames, callbacks):
 					pygame.event.set_grab(pygame.event.get_grab()^1) # lock mouse
 				if event.key == pygame.K_r and pygame.key.get_mods() & pygame.KMOD_CTRL:
 					cam.reset()
+
+		modifier = 0.2 if pygame.key.get_mods() & pygame.KMOD_SHIFT else 1
 		if keys[pygame.K_d]:
-			cam.moveLocal(10,0)
+			cam.moveLocal(10*modifier,0)
 		if keys[pygame.K_a]:
-			cam.moveLocal(-10,0)
+			cam.moveLocal(-10*modifier,0)
 		if keys[pygame.K_UP]:
-			cam.pos[2]-=10
+			cam.pos[2]-=10*modifier
 		if keys[pygame.K_DOWN]:
-			cam.pos[2]+=10
+			cam.pos[2]+=10*modifier
 		if keys[pygame.K_q]:
-			cam.angle[2]+=1
+			cam.angle[2]+=1*modifier
 		if keys[pygame.K_e]:
-			cam.angle[2]-=1
+			cam.angle[2]-=1*modifier
 		if keys[pygame.K_w]:
-			cam.moveLocal(0,-10)
+			cam.moveLocal(0,-10*modifier)
 		if keys[pygame.K_s]:
-			cam.moveLocal(0,10)
+			cam.moveLocal(0,10*modifier)
 		if keys[pygame.K_i]:
 			cam.pos = np.array([0,0,0])
 			cam.angle = np.array([0,0,0,0])
@@ -271,20 +135,10 @@ def main(lumpNames, callbacks):
 
 		# everything is done on model matrix because its simpler
 		glLoadIdentity() # clear the model matrix
-		gluPerspective(45, (display[0]/display[1]), 0.1, 5000) # generate the perspective
-		cam.updateView();
+		gluPerspective(45, (display[0]/display[1]), 0.1, 4000) # generate the perspective
+		UpdateViewToCamera(cam)
 
-		# send the final matrix to shader
-
-		if useCustomShader == True:
-			proj_mat = glGetFloatv(GL_MODELVIEW_MATRIX);	# now take it
-			glUniformMatrix4fv(projectionMatrixHandle, 1, GL_FALSE, proj_mat);
-
-			
-
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-
-		glDrawElements(GL_LINES, len(returnedLumps[3]), GL_UNSIGNED_SHORT,None)
+		DrawOpenGL()
 
 		pygame.display.flip()
 		pygame.time.wait(10)
