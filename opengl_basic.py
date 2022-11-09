@@ -33,7 +33,11 @@ void main(){
 	FragColor = vec4(1,2*(position.y-ymin)/(ymax-ymin),2-2*(position.y-ymin)/(ymax-ymin), 1.0);
 }"""
 
-
+def UpdateViewToCamera(c):
+	glRotatef(-c.angle[0],1,0,0);
+	glRotatef(-c.angle[1],0,1,0)
+	glRotatef(-c.angle[2],0,0,1)
+	glTranslatef(*c.pos)
 
 def pe():
 	print("error",glGetError())
