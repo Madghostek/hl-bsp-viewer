@@ -12,14 +12,18 @@ def main():
 
 	useCustomShader = True
 
-	testverts = np.concatenate(np.array([[0,0,0], [0,100,0], [100,100,0]], dtype=np.float32))
-	testedges = np.array([0,1,1,2,2,0], dtype=np.int16)
-
 	returnedLumps = GetBSPData("dd2.bsp")
 
 	#debug 
+	# testverts = np.array([[-100,500,300], [100,500,300], [100,500,500]], dtype=np.float32)
+	# testedges = np.array([[0,1],[1,2],[2,0]], dtype=np.int16)
+	# testsurfedges = np.array([[0],[1],[2]], dtype=np.int32)
+	# testfaces = np.array([[0,3]], dtype=np.int32)
+	
 	#returnedLumps[3]=testverts
 	#returnedLumps[12]=testedges
+	#returnedLumps[13]=testsurfedges
+	#returnedLumps[7]=testfaces
 
 	#after parsing
 	print("Pygame init")

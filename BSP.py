@@ -60,6 +60,7 @@ def ClipnodesCallback(raw,length,returnedLumps):
 def EdgesCallback(raw, length,returnedLumps):
 	edges = GetChunks(raw, length, "HH")
 	returnedLumps[LumpsEnum.LUMP_EDGES.value]=np.array(edges, dtype=np.int16)
+	#print(edges)
 
 def SurfedgesCallback(raw,length,returnedLumps):
 	returnedLumps[LumpsEnum.LUMP_SURFEDGES.value]=np.array(GetChunks(raw,length,"i"), dtype=np.int32) # signed ints, indexes into edges

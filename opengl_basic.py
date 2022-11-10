@@ -1,6 +1,7 @@
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from BSP import LumpsEnum
+import numpy as np
 # Config
 ########
 useCustomShader = True
@@ -111,6 +112,96 @@ def PrepareEdges(returnedLumps):
 
 	return len(returnedLumps[LumpsEnum.LUMP_EDGES.value])*2
 
+def PrepareFaces(returnedLumps):
+	# split n-gons into triangles...
+	# when faces lump wants more than 3 vertices at once, split them into 0 1 2, 0 3 4, 0 4 5
+	# now these indices can be inserted into element array, then GL_TRIANGLES can be used!
+	triangles = []
+	tricount=0
+	edges = returnedLumps[LumpsEnum.LUMP_EDGES.value]
+	surfedges = returnedLumps[LumpsEnum.LUMP_SURFEDGES.value]
+	print("prepare faces from surfedges,",len(surfedges))
+	for face in returnedLumps[LumpsEnum.LUMP_FACES.value]:
+		# for each face, figure out which surfedges (then real edges) it uses,
+		# then get list of all vertex indices used by face, but in a way that every 3 make a triangle
+
+		# this means - get first "base" index, take second index, take next edge and one of the indices (the new one),
+		# take next edge and another new index, until all edges from face taken, save the triplets to triangles array
+		print(face)
+		base = face[0]
+		count = face[1]-1 #!!! since im building triangles on my own, the last edge is not needed
+		tricount+=count-1 # 4 edges = 2 tris, 5 edges = 3 tris etc
+		print("the edges that will make a face:",surfedges[base:base+count+1])
+		print("which have these indices...")
+		for i in range(count):
+			print(edges[abs(surfedges[base+i][0])])
+		first = edges[surfedges[base][0]]
+		print("first",first,surfedges[base][0])
+		if surfedges[base][0]>=0:
+			astri=[first[0],first[1]]
+		else:
+			astri=[first[1],first[0]]
+		print("first two:",astri)
+		first = astri[0]
+		sedge = surfedges[base+1]
+		print(sedge)
+		newedge = edges[sedge[0]]
+		print(newedge)
+		if sedge[0]<=0:
+			newidx=newedge[0]
+		else:
+			newidx = newedge[1]
+		astri.append(newidx)
+
+		cur = 2
+		print("first tri:",astri)
+		while cur<count:
+			sedge = surfedges[base+cur]
+			print(sedge)
+			newedge = edges[abs(sedge[0])] 
+			print(newedge)
+			if sedge[0]<=0:
+				newidx=newedge[0]
+			else:
+				newidx = newedge[1]
+			print(newidx)
+			astri.extend([first,astri[-1],newidx]) #append base and last one
+			print("more",astri)
+			cur+=1
+		for i in range(0,len(astri),3):
+			triangles.append(astri[i:i+3])
+	print("final tri list",triangles)
+
+	# turn that into ndarray, send as element buffer (vertex buffer is the same as last time, draw with GL_TRIANGLES...)
+
+	vinfo = GLuint()
+	glGenVertexArrays(1, vinfo)
+	glBindVertexArray(vinfo)
+
+	b1 = GLuint()
+	glGenBuffers(1, b1)
+
+	indexBuffer = GLuint()
+	glGenBuffers(1, indexBuffer);
+
+	gBuffers = [vinfo,b1,indexBuffer]
+
+	# # tell OpenGL to use the b1 buffer for rendering, and give it data
+	glBindBuffer(GL_ARRAY_BUFFER, b1)
+	glBufferData(GL_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_VERTICES.value], GL_STATIC_DRAW)
+
+
+	# # describe what the data is (3x float)
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); #or None
+
+	# describe the edges (element buffer)
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, np.array([triangles],dtype=np.int16), GL_STATIC_DRAW);
+
+	return tricount*3
+
 def SetupOpenGL(returnedLumps):
 	global gDrawCount
 	global gProjectionMatrixHandle
@@ -144,9 +235,11 @@ def SetupOpenGL(returnedLumps):
 		glUniform1f(ymaxHandle, maxy)
 		assert (gProjectionMatrixHandle!=-1)
 
-	gDrawCount = PrepareEdges(returnedLumps)
+	# send data from lumps to gpu
+	gDrawCount = PrepareFaces(returnedLumps)
 
-	print(returnedLumps[LumpsEnum.LUMP_EDGES.value])
+	#glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+
 	print("DRAWCOUNT",gDrawCount)
 
 def DrawOpenGL(cam,display):
@@ -167,7 +260,8 @@ def DrawOpenGL(cam,display):
 
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
-	glDrawElements(GL_LINES, gDrawCount, GL_UNSIGNED_SHORT,None)	
+	# here pass pretty much length of element array, no matter the mode
+	glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT,None)	
 
 def CleanUpOpenGL():
 	global gBuffers
