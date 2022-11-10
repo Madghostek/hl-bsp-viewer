@@ -12,7 +12,7 @@ def main():
 
 	useCustomShader = True
 
-	returnedLumps = GetBSPData("dd2.bsp")
+	returnedLumps = GetBSPData("surf_treehouse_run.bsp")
 
 	#debug 
 	# testverts = np.array([[-100,500,300], [100,500,300], [100,500,500]], dtype=np.float32)

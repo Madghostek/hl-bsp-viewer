@@ -5,6 +5,8 @@ import numpy as np
 # Config
 ########
 useCustomShader = True
+cameraNear = 50
+cameraFar = 5000
 
 ########
 
@@ -33,9 +35,33 @@ uniform float ymin;
 uniform float ymax;
 
 void main(){
-
-	FragColor = vec4(1,2*(position.y-ymin)/(ymax-ymin),2-2*(position.y-ymin)/(ymax-ymin), 1.0);
+	
+	FragColor = vec4(0.8,(gl_PrimitiveID%5)/4.0,1, 1.0);
+	//FragColor = vec4(0.8,2*(position.y-ymin)/(ymax-ymin),2-2*(position.y-ymin)/(ymax-ymin), 1.0);
 }"""
+
+fragment_shader_depth = f"""#version 410
+
+in vec4 position;
+out vec4 FragColor;
+
+uniform float ymin;
+uniform float ymax;
+
+float near = {cameraNear}; 
+float far  = {cameraFar};
+
+float LinearizeDepth(float depth) 
+{{
+    float z = depth * 2.0 - 1.0; // back to NDC 
+    return (2.0 * near * far) / (far + near - z * (far - near));	
+}}
+
+void main(){{
+	ymin;
+	ymax;
+	FragColor = vec4(vec3(LinearizeDepth(gl_FragCoord.z)), 1.0);
+}}"""
 
 def UpdateViewToCamera(c):
 	glRotatef(-c.angle[0],1,0,0);
@@ -131,22 +157,22 @@ def PrepareFaces(returnedLumps):
 		base = face[0]
 		count = face[1]-1 #!!! since im building triangles on my own, the last edge is not needed
 		tricount+=count-1 # 4 edges = 2 tris, 5 edges = 3 tris etc
-		print("the edges that will make a face:",surfedges[base:base+count+1])
-		print("which have these indices...")
-		for i in range(count):
-			print(edges[abs(surfedges[base+i][0])])
-		first = edges[surfedges[base][0]]
-		print("first",first,surfedges[base][0])
+		#print("the edges that will make a face:",surfedges[base:base+count+1])
+		#print("which have these indices...")
+		#for i in range(count):
+		#	print(edges[abs(surfedges[base+i][0])])
+		first = edges[abs(surfedges[base][0])]
+		#print("first",first,surfedges[base][0])
 		if surfedges[base][0]>=0:
 			astri=[first[0],first[1]]
 		else:
 			astri=[first[1],first[0]]
-		print("first two:",astri)
+		#print("first two:",astri)
 		first = astri[0]
 		sedge = surfedges[base+1]
-		print(sedge)
-		newedge = edges[sedge[0]]
-		print(newedge)
+		#print(sedge)
+		newedge = edges[abs(sedge[0])]
+		#print(newedge)
 		if sedge[0]<=0:
 			newidx=newedge[0]
 		else:
@@ -154,23 +180,23 @@ def PrepareFaces(returnedLumps):
 		astri.append(newidx)
 
 		cur = 2
-		print("first tri:",astri)
+		#print("first tri:",astri)
 		while cur<count:
 			sedge = surfedges[base+cur]
-			print(sedge)
+			#print(sedge)
 			newedge = edges[abs(sedge[0])] 
-			print(newedge)
+			#print(newedge)
 			if sedge[0]<=0:
 				newidx=newedge[0]
 			else:
 				newidx = newedge[1]
-			print(newidx)
+			#print(newidx)
 			astri.extend([first,astri[-1],newidx]) #append base and last one
-			print("more",astri)
+			#print("more",astri)
 			cur+=1
 		for i in range(0,len(astri),3):
 			triangles.append(astri[i:i+3])
-	print("final tri list",triangles)
+	#print("final tri list",triangles)
 
 	# turn that into ndarray, send as element buffer (vertex buffer is the same as last time, draw with GL_TRIANGLES...)
 
@@ -238,7 +264,9 @@ def SetupOpenGL(returnedLumps):
 	# send data from lumps to gpu
 	gDrawCount = PrepareFaces(returnedLumps)
 
-	#glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+
+	glEnable(GL_DEPTH_TEST); # gl_FragCoord in fragment shader
 
 	print("DRAWCOUNT",gDrawCount)
 
@@ -249,7 +277,7 @@ def DrawOpenGL(cam,display):
 
 	# everything is done on model matrix because its simpler
 	glLoadIdentity() # clear the model matrix
-	gluPerspective(45, (display[0]/display[1]), 0.1, 4000) # generate the perspective
+	gluPerspective(45, (display[0]/display[1]), cameraNear, cameraFar) # generate the perspective
 	UpdateViewToCamera(cam)
 
 	if useCustomShader == True:
@@ -261,7 +289,12 @@ def DrawOpenGL(cam,display):
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
 	# here pass pretty much length of element array, no matter the mode
+	#SetFragColor()
+	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 	glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT,None)	
+	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT,None)	
+
 
 def CleanUpOpenGL():
 	global gBuffers
