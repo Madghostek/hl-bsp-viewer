@@ -31,12 +31,17 @@ fragment_shader = """#version 410
 in vec4 position;
 out vec4 FragColor;
 
+in float rand;
+
 uniform float ymin;
 uniform float ymax;
+uniform float forceColor;
 
 void main(){
-	
-	FragColor = vec4(0.8,(gl_PrimitiveID%5)/4.0,1, 1.0);
+	if (forceColor==-1.0)
+		FragColor = vec4(0.8,(gl_PrimitiveID%5)/4.0,1, 1.0);
+	else
+		FragColor = vec4(0,0,0, 1.0);
 	//FragColor = vec4(0.8,2*(position.y-ymin)/(ymax-ymin),2-2*(position.y-ymin)/(ymax-ymin), 1.0);
 }"""
 
@@ -77,7 +82,6 @@ def ProgramWithShader(vertexShader, fragmentShader = None):
 	prog = glCreateProgram()
 	shader = glCreateShader(GL_VERTEX_SHADER)
 	glShaderSource(shader, vertexShader)
-	pe()
 	glCompileShader(shader);
 	res = glGetShaderiv(shader,GL_COMPILE_STATUS)
 	print("vertex shader compilation status:","OK" if res==GL_TRUE else "ERROR")
@@ -88,7 +92,6 @@ def ProgramWithShader(vertexShader, fragmentShader = None):
 	if fragmentShader:
 		shader = glCreateShader(GL_FRAGMENT_SHADER)
 		glShaderSource(shader, fragmentShader)
-		pe()
 		glCompileShader(shader);
 		print("LOG:",glGetProgramInfoLog(prog))
 		glAttachShader(prog, shader)
@@ -98,11 +101,8 @@ def ProgramWithShader(vertexShader, fragmentShader = None):
 
 		
 
-	pe()
 	glLinkProgram(prog);
-	pe()
 	glUseProgram(prog);
-	pe()
 	print("Program done")
 	return prog
 
@@ -138,10 +138,10 @@ def PrepareEdges(returnedLumps):
 
 	return len(returnedLumps[LumpsEnum.LUMP_EDGES.value])*2
 
-def PrepareFaces(returnedLumps):
+def TriangulateFaces(returnedLumps):
 	# split n-gons into triangles...
 	# when faces lump wants more than 3 vertices at once, split them into 0 1 2, 0 3 4, 0 4 5
-	# now these indices can be inserted into element array, then GL_TRIANGLES can be used!
+	# now these indices can be inserted into element array, then GL_TRIANGLES can be used
 	triangles = []
 	tricount=0
 	edges = returnedLumps[LumpsEnum.LUMP_EDGES.value]
@@ -197,6 +197,10 @@ def PrepareFaces(returnedLumps):
 		for i in range(0,len(astri),3):
 			triangles.append(astri[i:i+3])
 	#print("final tri list",triangles)
+	return triangles, tricount
+
+def PrepareFaces(returnedLumps):
+	triangles,tricount = TriangulateFaces(returnedLumps)
 
 	# turn that into ndarray, send as element buffer (vertex buffer is the same as last time, draw with GL_TRIANGLES...)
 
@@ -243,7 +247,7 @@ def SetupOpenGL(returnedLumps):
 	if useCustomShader == True:
 
 		# get world bounds:
-		print(returnedLumps[LumpsEnum.LUMP_VERTICES.value])
+		#print(returnedLumps[LumpsEnum.LUMP_VERTICES.value])
 		for vert in returnedLumps[LumpsEnum.LUMP_VERTICES.value]:
 			minx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,0].min()
 			miny = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,1].min()
@@ -251,7 +255,7 @@ def SetupOpenGL(returnedLumps):
 			maxx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,0].max()
 			maxy = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,1].max()
 			maxz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,2].max()
-		print(minx,miny,minz,maxx,maxy,maxz)
+		#print(minx,miny,minz,maxx,maxy,maxz)
 
 		program = ProgramWithShader(vertex_shader_perspective, fragment_shader)
 		gProjectionMatrixHandle = glGetUniformLocation(program, "projection_matrix")
@@ -267,10 +271,19 @@ def SetupOpenGL(returnedLumps):
 	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
 	glEnable(GL_DEPTH_TEST); # gl_FragCoord in fragment shader
+	#glEnable(GL_MULTISAMPLE); 
 
 	print("DRAWCOUNT",gDrawCount)
 
-def DrawOpenGL(cam,display):
+	return program
+
+# override debug colors with this
+# set to -1 to disable
+def SetFragColor(program,color):
+	forceColor = glGetUniformLocation(program, "forceColor")
+	glUniform1f(forceColor, color)
+
+def DrawOpenGL(cam,display ,program):
 	global gDrawCount
 	global gProjectionMatrixHandle
 	# send the final matrix to shader
@@ -279,6 +292,7 @@ def DrawOpenGL(cam,display):
 	glLoadIdentity() # clear the model matrix
 	gluPerspective(45, (display[0]/display[1]), cameraNear, cameraFar) # generate the perspective
 	UpdateViewToCamera(cam)
+	#print(cam.pos)
 
 	if useCustomShader == True:
 		proj_mat = glGetFloatv(GL_MODELVIEW_MATRIX);	# now take it
@@ -289,9 +303,12 @@ def DrawOpenGL(cam,display):
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
 	# here pass pretty much length of element array, no matter the mode
-	#SetFragColor()
+	SetFragColor(program,-1)
 	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 	glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT,None)	
+
+	# outline
+	SetFragColor(program,0)
 	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 	glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT,None)	
 

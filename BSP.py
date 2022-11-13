@@ -71,15 +71,15 @@ def FacesCallback(raw,length, returnedLumps):
 	returnedLumps[LumpsEnum.LUMP_FACES.value]=np.array(onlyEdges)
 
 	# find planes that don't have a face attached
-	seen = [False for _ in range(len(returnedLumps[LumpsEnum.LUMP_PLANES.value]))]
-	print(len(faces))
-	for face in faces:
-		planeIdx = face[0]
-		#print("plane:",planeIdx)
-		seen[planeIdx]=True
-	notSeen = [idx for idx,val in enumerate(seen) if val]
-	#print("faces planes",notSeen[:100])
-	gFaces = notSeen[:]
+	# seen = [False for _ in range(len(returnedLumps[LumpsEnum.LUMP_PLANES.value]))]
+	# print(len(faces))
+	# for face in faces:
+	# 	planeIdx = face[0]
+	# 	#print("plane:",planeIdx)
+	# 	seen[planeIdx]=True
+	# notSeen = [idx for idx,val in enumerate(seen) if val]
+	# #print("faces planes",notSeen[:100])
+	# gFaces = notSeen[:]
 # this might not be needed actually
 def ClipnodesCallback(raw,length,returnedLumps):
 	global gClips
@@ -99,20 +99,20 @@ def ClipnodesCallback(raw,length,returnedLumps):
 
 def LeavesCallback(raw,length,returnedLumps):
 	leaves = GetChunks(raw, length, "ii3h3hHH4B")
-	for l in leaves:
-		#print(l)
-		if l[0] not in (-1,-6):
-			print(l)
-		if l[0]==-2: #type
-			#solid
-			if l[9]==0 or l[8]<0: #amount of marksurfs
-				print("invisible solid",l)
-			else:
-				ind=l[8]
-				if returnedLumps[LumpsEnum.LUMP_MARKSURFACES.value][ind]==0:
-					print("nonsense faces",l)
-				else:
-					print("valid solid:",l)
+	# for l in leaves:
+	# 	#print(l)
+	# 	if l[0] not in (-1,-6):
+	# 		print(l)
+	# 	if l[0]==-2: #type
+	# 		#solid
+	# 		if l[9]==0 or l[8]<0: #amount of marksurfs
+	# 			print("invisible solid",l)
+	# 		else:
+	# 			ind=l[8]
+	# 			if returnedLumps[LumpsEnum.LUMP_MARKSURFACES.value][ind]==0:
+	# 				print("nonsense faces",l)
+	# 			else:
+	# 				print("valid solid:",l)
 	returnedLumps[LumpsEnum.LUMP_LEAVES.value]=np.array(leaves)
 
 def MarksurfacesCallback(raw,length,returnedLumps):
@@ -128,6 +128,11 @@ def EdgesCallback(raw, length,returnedLumps):
 def SurfedgesCallback(raw,length,returnedLumps):
 	returnedLumps[LumpsEnum.LUMP_SURFEDGES.value]=np.array(GetChunks(raw,length,"i"), dtype=np.int32) # signed ints, indexes into edges
 
+def ModelsCallback(raw,length,returnedLumps):
+	# bounding box, then origin coords, then hull something, then Vis leafs index, then finally first face index and face count
+	returnedLumps[LumpsEnum.LUMP_MODELS.value]=GetChunks(raw,length,"3f3f3f4ii2i") 
+
+
 gCallbacks = {
 	LumpsEnum.LUMP_ENTITIES.value: EntitiesCallback,
 	LumpsEnum.LUMP_PLANES.value: PlanesCallback,
@@ -137,7 +142,8 @@ gCallbacks = {
 	LumpsEnum.LUMP_LEAVES.value : LeavesCallback,
 	LumpsEnum.LUMP_MARKSURFACES.value: MarksurfacesCallback,
 	LumpsEnum.LUMP_EDGES.value: EdgesCallback,
-	LumpsEnum.LUMP_SURFEDGES.value: SurfedgesCallback
+	LumpsEnum.LUMP_SURFEDGES.value: SurfedgesCallback,
+	LumpsEnum.LUMP_MODELS.value: ModelsCallback
 }
 
 def GetBSPData(fname, debug=False, lumpsMask = 0x8000-1):

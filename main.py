@@ -13,7 +13,7 @@ def RunWindow(returnedLumps):
 	pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
 
 	print("OpenGL init")
-	SetupOpenGL(returnedLumps)
+	program = SetupOpenGL(returnedLumps)
 
 	#glViewport(0,0,400,400)
 	cam = Camera(0,-50,-300,90,0,0)
@@ -51,13 +51,23 @@ def RunWindow(returnedLumps):
 			cam.pos = np.array([0,0,0])
 			cam.angle = np.array([0,0,0,0])
 
+		if pygame.key.get_mods() & pygame.KMOD_CTRL and keys[pygame.K_g]:
+			tmp=pygame.event.get_grab()
+			pygame.event.set_grab(0)
+			strXYZ=input("goto (x,y,z):")
+			coords = list(map(float,strXYZ.split(",")))
+			cam.pos[0] = coords[0]
+			cam.pos[1] = coords[1]
+			cam.pos[2] = coords[2]
+			pygame.event.set_grab(tmp)
+
 
 		x,y = pygame.mouse.get_rel()
 		if pygame.mouse.get_pressed()[0]:
 			cam.angle[2]+=x*0.1
 			cam.angle[0]+=y*0.1
 
-		DrawOpenGL(cam,display)
+		DrawOpenGL(cam,display, program)
 
 		pygame.display.flip()
 		pygame.time.wait(10)
@@ -70,31 +80,64 @@ def EntitiesToPythonDict(ents: str):
 	import json
 	afterReplace = ents.replace(" ",":").replace('"\n"','",\n"').replace('\\', '\\\\').replace("}\n{", "},\n{")
 	jsonable = "["+afterReplace+"]"
-	#print(jsonable)
+
 	return json.loads(jsonable)
 
+def BoundsToLines(mins, maxs):
+	# parallelpiped has 12 edges
+
+	edges = []
+	# coming from min vertex
+	edges.append((mins,(maxs[0],mins[1],mins[2])))
+	edges.append((mins,(mins[0],maxs[1],mins[2])))
+	edges.append((mins,(mins[0],mins[1],maxs[2])))
+
+	# coming from max vertex
+	edges.append((maxs,(mins[0],maxs[1],maxs[2])))
+	edges.append((maxs,(maxs[0],mins[1],maxs[2])))
+	edges.append((maxs,(maxs[0],maxs[1],mins[2])))
+
+	# near min
+	edges.append(((mins[0],maxs[1],mins[2]),(mins[0],maxs[1],maxs[2])))
+	edges.append(((mins[0],maxs[1],mins[2]),(maxs[0],maxs[1],mins[2])))
+
+	# near max
+	edges.append(((mins[0],maxs[1],mins[2]),(maxs[0],mins[1],mins[2])))
+	edges.append(((maxs[0],mins[1],maxs[2]),(mins[0],mins[1],maxs[2])))
+
+	return edges
+
+
+
 def GetAllBoostCoords(ents,lumps):
+	boosts = []
 	for e in ents:
 		if e['classname']=='trigger_push':
 			# find model index:
 			mIdx = int(e['model'][1:])
 
 			# get that model from lumps
-			#model = lumps[LumpsEnum.LUMP_MODELS.value][mIdx]
+			model = lumps[LumpsEnum.LUMP_MODELS.value][mIdx]
 
-			# get corresponding faces
+			# get bounds:
 
+			nMins, nMaxs = list(map(lambda x: -x,model[0:3])),list(map(lambda x: -x,model[3:6]))
+			lines = BoundsToLines(nMins,nMaxs)
+			boosts.append(lines)
+	return boosts
 def main():
 
 	useCustomShader = True
 
 	# lumps are returned as np.array, sometimes signed.
 	# entity lump is special, its just a string
-	returnedLumps = GetBSPData("ss2.bsp", lumpsMask=1)
+	returnedLumps = GetBSPData("maps/surf_desert_city.bsp")
 
 	ents = EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
 
 	boostCoords = GetAllBoostCoords(ents, returnedLumps)
+	print("boosts:",boostCoords)
+
 	
 	#debug 
 	# testverts = np.array([[-100,500,300], [100,500,300], [100,500,500]], dtype=np.float32)
@@ -108,7 +151,7 @@ def main():
 	#returnedLumps[7]=testfaces
 
 	#after parsing
-	#RunWindow(returnedLumps)
+	RunWindow(returnedLumps)
 
 if __name__=="__main__":
 	main()
