@@ -54,7 +54,7 @@ def PlanesCallback(raw,length,returnedLumps):
 	# !!!! probably broken plane type because numpy messes with dtype
 	planes = GetChunks(raw, length, "3ffi") #[Vec3D normal,fDist,plane type]
 	returnedLumps[LumpsEnum.LUMP_PLANES.value] = np.array(planes)
-	print(len(planes))
+	#print(len(planes))
 
 # do something with vertices, here I dump them to array of points
 def VerticesCallback(raw,length,returnedLumps):

@@ -1,16 +1,18 @@
 import numpy as np
-import pygame
-from pygame.locals import *
+import argparse
 
 from camera import Camera
 from opengl_basic import *
 from BSP import *
 
 def RunWindow(returnedLumps):
+	import pygame
+	import pygame.locals
+
 	print("Pygame init")
 	pygame.init()
 	display = (800,600)
-	pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
+	pygame.display.set_mode(display, pygame.locals.DOUBLEBUF|pygame.locals.OPENGL)
 
 	print("OpenGL init")
 	program = SetupOpenGL(returnedLumps)
@@ -121,22 +123,35 @@ def GetAllBoostCoords(ents,lumps):
 
 			# get bounds:
 
-			nMins, nMaxs = list(map(lambda x: -x,model[0:3])),list(map(lambda x: -x,model[3:6]))
+			nMins, nMaxs = tuple(map(lambda x: -x,model[0:3])),tuple(map(lambda x: -x,model[3:6]))
 			lines = BoundsToLines(nMins,nMaxs)
 			boosts.append(lines)
 	return boosts
+
 def main():
 
-	useCustomShader = True
+	parser = argparse.ArgumentParser(
+                    prog = 'BSPRead',
+                    description = 'View BSP maps',
+                    epilog = 'real')
+	parser.add_argument('filename', type=str, help='BSP map path')
+	args = parser.parse_args()
 
 	# lumps are returned as np.array, sometimes signed.
 	# entity lump is special, its just a string
-	returnedLumps = GetBSPData("maps/surf_desert_city.bsp")
+	returnedLumps = GetBSPData(args.filename)
 
 	ents = EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
 
+	# list of boosts
+	#	- boost is a list of edges
+	#		- edge is a tuple of two vertices
+	#			- vertex is a tuple of 3 floats
 	boostCoords = GetAllBoostCoords(ents, returnedLumps)
-	print("boosts:",boostCoords)
+	for idx,boost in enumerate(boostCoords):
+		print(f"boost #{idx}:")
+		for edge in boost:
+			print("\t",edge)
 
 	
 	#debug 
@@ -151,7 +166,7 @@ def main():
 	#returnedLumps[7]=testfaces
 
 	#after parsing
-	RunWindow(returnedLumps)
+	#RunWindow(returnedLumps)
 
 if __name__=="__main__":
 	main()
