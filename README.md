@@ -32,7 +32,7 @@ optional arguments:
                         to a file (json)
   --display, -d         show map in OpenGL window
   
-  example: BSPRead maps/de_dust2.bsp -d
+  example: BSPRead.py maps/de_dust2.bsp -d
 ```
 
 ## Controls
