@@ -13,8 +13,8 @@ class Camera():
 
 	# du - left right, dw - forward, backward
 	def moveLocal(self,du,dw):
-		self.pos[0]-=dw*np.sin(np.radians(self.angle[2]))+du*np.cos(np.radians(self.angle[2]))
-		self.pos[1]+=dw*np.cos(np.radians(self.angle[2]))-du*np.sin(np.radians(self.angle[2]))
+		self.pos[0]-=dw*np.sin(np.radians(self.angle[2]))*np.sin(np.radians(self.angle[0]))+du*np.cos(np.radians(self.angle[2]))
+		self.pos[1]+=dw*np.cos(np.radians(self.angle[2]))*np.sin(np.radians(self.angle[0]))-du*np.sin(np.radians(self.angle[2]))
 		self.pos[2]-=dw*np.cos(np.radians(self.angle[0]))
 
 	def reset(self):
