@@ -85,31 +85,6 @@ def EntitiesToPythonDict(ents: str):
 
 	return json.loads(jsonable)
 
-def BoundsToLines(mins, maxs):
-	# parallelpiped has 12 edges
-
-	edges = []
-	# coming from min vertex
-	edges.append((mins,(maxs[0],mins[1],mins[2])))
-	edges.append((mins,(mins[0],maxs[1],mins[2])))
-	edges.append((mins,(mins[0],mins[1],maxs[2])))
-
-	# coming from max vertex
-	edges.append((maxs,(mins[0],maxs[1],maxs[2])))
-	edges.append((maxs,(maxs[0],mins[1],maxs[2])))
-	edges.append((maxs,(maxs[0],maxs[1],mins[2])))
-
-	# near min
-	edges.append(((mins[0],maxs[1],mins[2]),(mins[0],maxs[1],maxs[2])))
-	edges.append(((mins[0],maxs[1],mins[2]),(maxs[0],maxs[1],mins[2])))
-
-	# near max
-	edges.append(((mins[0],maxs[1],mins[2]),(maxs[0],mins[1],mins[2])))
-	edges.append(((maxs[0],mins[1],maxs[2]),(mins[0],mins[1],maxs[2])))
-
-	return edges
-
-
 
 def GetAllBoostCoords(ents,lumps):
 	boosts = []
@@ -121,11 +96,29 @@ def GetAllBoostCoords(ents,lumps):
 			# get that model from lumps
 			model = lumps[LumpsEnum.LUMP_MODELS.value][mIdx]
 
-			# get bounds:
+			# get faces
+			facesIdx, nFaces = model[14], model[15]
 
-			nMins, nMaxs = tuple(map(lambda x: -x,model[0:3])),tuple(map(lambda x: -x,model[3:6]))
-			lines = BoundsToLines(nMins,nMaxs)
-			boosts.append(lines)
+			# get all edges
+			edges = []
+
+			for face in lumps[LumpsEnum.LUMP_FACES.value][facesIdx:facesIdx+nFaces]:
+				surfedgesIdx, nSurfedges = face[0],face[1]
+				edges.extend(lumps[LumpsEnum.LUMP_SURFEDGES.value][surfedgesIdx:surfedgesIdx+nSurfedges])
+
+			edges=np.concatenate(edges)
+
+			# make all indices positive
+			edges = set(map(lambda x: abs(x),edges))
+
+			# get all vertex indices
+			vertices = []
+			for edge in edges:
+				v1i, v2i = lumps[LumpsEnum.LUMP_EDGES.value][edge]
+				vertices.append(tuple([lumps[LumpsEnum.LUMP_VERTICES.value][v1i].tolist(),
+					lumps[LumpsEnum.LUMP_VERTICES.value][v2i].tolist()]))
+			boosts.append(vertices)
+
 	return boosts
 
 def main():
@@ -133,23 +126,31 @@ def main():
 	parser = argparse.ArgumentParser(
                     prog = 'BSPViewer.py',
                     description = 'View BSP maps',
-                    epilog = 'example: python3 BSPViewer.py maps/de_dust2.bsp -d')
+                    epilog = 'examples: python3 BSPViewer.py maps/de_dust2.bsp -d\n\
+                    					python3 BSPViewer.py maps/de_dust2.bsp -b output.json\n\
+                    					python3 BSPViewer.py maps/de_dust2.bsp -b -s csv')
 	parser.add_argument('filename', type=str, help='BSP map path')
-	parser.add_argument('--boosts', '-b', nargs='?',  help='find boosts present in map and save edge coordinates to a file (json)', const="nopath")
+	parser.add_argument('--boosts', '-b', nargs='?',  help='find boosts present in map and save edge coordinates to a file. If `--serialiser` not specified, Deduces output format from extension (json or csv)', const="nopath")
+	parser.add_argument('--serialiser','-s', help='`boosts` optput format, if no output filename given')
 	parser.add_argument('--display','-d',action='store_true', help='show map in OpenGL window')
-	args = parser.parse_args()
+	args = parser.parse_args(["ss2.bsp", "-b"])
+
+	if args.serialiser not in ('csv','json', None):
+		print("Serialiser invalid, only csv and json available")
+		exit(1)
+	if args.boosts!="nopath" and args.boosts[-5:] != '.json' and args.boosts[-4:] != '.csv':
+		print("Boosts file output invalid, only .csv and .json available")
+		exit(1)
+	
+	serialiser = args.serialiser if args.serialiser else "json" if args.boosts[-5:]==".json" else "csv"
 
 	# lumps are returned as np.array, sometimes signed.
 	# entity lump is special, its just a string
 	# lump mask can be used to filter out not needed lumps, this speeds up calculation
 	# it's a bitmask, where each lump has nth bit, so use powers of 2
-	mask = 0
-	if args.display:
-		mask|=2**15-1 #everything
-	if args.boosts:
-		mask |= 2**LumpsEnum.LUMP_MODELS.value+2**LumpsEnum.LUMP_ENTITIES.value # only stuff crucial for boost detection
-	returnedLumps = GetBSPData(args.filename, lumpsMask = mask)
-
+	# if args.display:
+	# 	mask|=2**15-1 #everything
+	returnedLumps = GetBSPData(args.filename)
 
 	if args.boosts:
 		ents = EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
@@ -163,11 +164,21 @@ def main():
 			print(f"boost #{idx}:")
 			for edge in boost:
 				print("\t",edge)
-		boostsJson = json.dumps(boostCoords)
-		fname = args.filename[:-4]+"_boosts.json" if args.boosts == "nopath" else args.boosts
-		print("writing to ",fname)
-		with open(fname, "w") as f:
-			f.write(boostsJson)
+		if serialiser == 'json':
+			boostsString = json.dumps(boostCoords)
+			fname = args.filename[:-5]+"_boosts.json" if args.boosts == "nopath" else args.boosts
+			print("writing to ",fname)
+			with open(fname, "w") as f:
+				f.write(boostsJson)
+		else:
+			import csv
+			fname = args.filename[:-4]+"_boosts.csv" if args.boosts == "nopath" else args.boosts
+			print("writing to",fname)
+			with open(fname, 'w') as csvfile:
+				writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE,escapechar=' ')
+				for idx,boost in enumerate(boostCoords):
+					for edge in boost:
+						writer.writerow(edge)
 
 	
 	#debug 
