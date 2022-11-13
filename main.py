@@ -1,13 +1,14 @@
 import numpy as np
 import argparse
 
-from camera import Camera
-from opengl_basic import *
 from BSP import *
+import json
 
 def RunWindow(returnedLumps):
 	import pygame
 	import pygame.locals
+	from camera import Camera
+	import opengl_basic
 
 	print("Pygame init")
 	pygame.init()
@@ -15,7 +16,7 @@ def RunWindow(returnedLumps):
 	pygame.display.set_mode(display, pygame.locals.DOUBLEBUF|pygame.locals.OPENGL)
 
 	print("OpenGL init")
-	program = SetupOpenGL(returnedLumps)
+	program = opengl_basic.SetupOpenGL(returnedLumps)
 
 	#glViewport(0,0,400,400)
 	cam = Camera(0,-50,-300,90,0,0)
@@ -69,17 +70,16 @@ def RunWindow(returnedLumps):
 			cam.angle[2]+=x*0.1
 			cam.angle[0]+=y*0.1
 
-		DrawOpenGL(cam,display, program)
+		opengl_basic.DrawOpenGL(cam,display, program)
 
 		pygame.display.flip()
 		pygame.time.wait(10)
 
 	# cleanup @TODO: Move this to quit event :|
 	print("exit")
-	CleanupOpenGL()
+	opengl_basic.CleanupOpenGL()
 
 def EntitiesToPythonDict(ents: str):
-	import json
 	afterReplace = ents.replace(" ",":").replace('"\n"','",\n"').replace('\\', '\\\\').replace("}\n{", "},\n{")
 	jsonable = "["+afterReplace+"]"
 
@@ -135,23 +135,39 @@ def main():
                     description = 'View BSP maps',
                     epilog = 'real')
 	parser.add_argument('filename', type=str, help='BSP map path')
+	parser.add_argument('--boosts', '-b', nargs='?',  help='find boosts present in map and save edge coordinates to a file (json)', const="nopath")
+	parser.add_argument('--display','-d',action='store_true', help='show map in OpenGL window')
 	args = parser.parse_args()
 
 	# lumps are returned as np.array, sometimes signed.
 	# entity lump is special, its just a string
-	returnedLumps = GetBSPData(args.filename)
+	# lump mask can be used to filter out not needed lumps, this speeds up calculation
+	# it's a bitmask, where each lump has nth bit, so use powers of 2
+	mask = 0
+	if args.display:
+		mask|=2**15-1 #everything
+	if args.boosts:
+		mask |= 2**LumpsEnum.LUMP_MODELS.value+2**LumpsEnum.LUMP_ENTITIES.value # only stuff crucial for boost detection
+	returnedLumps = GetBSPData(args.filename, lumpsMask = mask)
 
-	ents = EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
 
-	# list of boosts
-	#	- boost is a list of edges
-	#		- edge is a tuple of two vertices
-	#			- vertex is a tuple of 3 floats
-	boostCoords = GetAllBoostCoords(ents, returnedLumps)
-	for idx,boost in enumerate(boostCoords):
-		print(f"boost #{idx}:")
-		for edge in boost:
-			print("\t",edge)
+	if args.boosts:
+		ents = EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
+
+		# list of boosts
+		#	- boost is a list of edges
+		#		- edge is a tuple of two vertices
+		#			- vertex is a tuple of 3 floats
+		boostCoords = GetAllBoostCoords(ents, returnedLumps)
+		for idx,boost in enumerate(boostCoords):
+			print(f"boost #{idx}:")
+			for edge in boost:
+				print("\t",edge)
+		boostsJson = json.dumps(boostCoords)
+		fname = args.filename[:-4]+"_boosts.json" if args.boosts == "nopath" else args.boosts
+		print("writing to ",fname)
+		with open(fname, "w") as f:
+			f.write(boostsJson)
 
 	
 	#debug 
@@ -166,7 +182,8 @@ def main():
 	#returnedLumps[7]=testfaces
 
 	#after parsing
-	#RunWindow(returnedLumps)
+	if args.display:
+		RunWindow(returnedLumps)
 
 if __name__=="__main__":
 	main()
