@@ -20,9 +20,10 @@ optional arguments:
   --boosts [BOOSTS], -b [BOOSTS]
                         find boosts present in map and save edge coordinates
                         to a file (json)
-  --display, -d         show map in OpenGL window```
+  --display, -d         show map in OpenGL window
   
   example: BSPRead maps/de_dust2.bsp -d
+```
 
 # Controls
 LBM and drag - rotate camera
