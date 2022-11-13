@@ -29,6 +29,6 @@ optional arguments:
 LBM and drag - rotate camera
 AWSD - move around
 QE - look to left/right
-up/down arrow - move up down (camera is sometimes non-intuitive)
+up/down arrow - move up down
 ctrl+r - reset to origin
 ctrl-g - teleport to location (you need to run the script from some kind of console for that)
