@@ -6,7 +6,7 @@ import numpy as np
 ########
 useCustomShader = True
 cameraNear = 50
-cameraFar = 5000
+cameraFar = 10000
 
 ########
 

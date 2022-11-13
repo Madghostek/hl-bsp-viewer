@@ -12,7 +12,7 @@ def RunWindow(returnedLumps):
 
 	print("Pygame init")
 	pygame.init()
-	display = (800,600)
+	display = (1920,1080)
 	pygame.display.set_mode(display, pygame.locals.DOUBLEBUF|pygame.locals.OPENGL)
 
 	print("OpenGL init")
@@ -154,8 +154,8 @@ def main():
 	if args.boosts:
 		ents = EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
 
-		# list of boosts
-		#	- boost is a list of edges
+		# list of boosts in map
+		#	- boost is a tuple of 12 edges (parallelpiped)
 		#		- edge is a tuple of two vertices
 		#			- vertex is a tuple of 3 floats
 		boostCoords = GetAllBoostCoords(ents, returnedLumps)
