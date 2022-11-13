@@ -1,5 +1,5 @@
 # hl-bsp-viewer
-Python program to parse .bsp file and do stuff with it.
+Python program to parse .bsp files and do stuff with it.
 
 With awful debug shader™ !!!
 ![awful shader](https://github.com/madghostek/hl-bsp-viewer/blob/main/debugview.png?raw=true)
