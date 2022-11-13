@@ -120,6 +120,19 @@ def GetAllBoostCoords(ents,lumps):
 			boosts.append(realedges)
 	return boosts
 
+# def DebugBoost(coords):
+# 	import matplotlib.pyplot as plt
+# 	from mpl_toolkits.mplot3d import Axes3D
+
+# 	fig = plt.figure()
+# 	ax  = fig.add_subplot(111, projection = '3d')
+
+# 	x,y,z=[],[],[]
+# 	for edge in coords:
+# 		print(edge)
+# 		ax.plot([edge[0][0],edge[1][0]],[edge[0][1],edge[1][1]],[edge[0][2],edge[1][2]])
+# 	plt.show()
+
 def main():
 
 	parser = argparse.ArgumentParser(
@@ -160,6 +173,9 @@ def main():
 		#		- edge is a tuple of two vertices
 		#			- vertex is a tuple of 3 floats
 		boostCoords = GetAllBoostCoords(ents, returnedLumps)
+		
+		#DebugBoost(boostCoords[0])
+
 		for idx,boost in enumerate(boostCoords):
 			print(f"boost #{idx}:")
 			for edge in boost:
