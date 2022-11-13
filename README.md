@@ -29,7 +29,7 @@ optional arguments:
 ```
 
 ## Controls
-* LBM and drag - rotate camera
+* LMB and drag - rotate camera
 * AWSD - move around
 * QE - look to left/right
 * up/down arrow - move up down
