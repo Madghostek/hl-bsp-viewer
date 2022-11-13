@@ -111,14 +111,13 @@ def GetAllBoostCoords(ents,lumps):
 			# make all indices positive
 			edges = set(map(lambda x: abs(x),edges))
 
-			# get all vertex indices
-			vertices = []
+			# get all vertex values
+			realedges = []
 			for edge in edges:
 				v1i, v2i = lumps[LumpsEnum.LUMP_EDGES.value][edge]
-				vertices.append(tuple([lumps[LumpsEnum.LUMP_VERTICES.value][v1i].tolist(),
-					lumps[LumpsEnum.LUMP_VERTICES.value][v2i].tolist()]))
-			boosts.append(vertices)
-
+				v1, v2 = lumps[LumpsEnum.LUMP_VERTICES.value][v1i].tolist(),lumps[LumpsEnum.LUMP_VERTICES.value][v2i].tolist()
+				realedges.append([tuple(map(lambda x: round(x,2),v1)),tuple(map(lambda x: round(x,2),v1))])
+			boosts.append(realedges)
 	return boosts
 
 def main():
@@ -177,6 +176,7 @@ def main():
 			with open(fname, 'w') as csvfile:
 				writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE,escapechar=' ')
 				for idx,boost in enumerate(boostCoords):
+					writer.writerow([f"boost #{idx}"])
 					for edge in boost:
 						writer.writerow(edge)
 
