@@ -5,14 +5,7 @@ With awful debug shader™ !!!
 ![awful shader](https://github.com/madghostek/hl-bsp-viewer/blob/main/debugview.png?raw=true)
 
 ## Requirements
-Parsing file only:
-* numpy
-* argparse
-* json
-
-Displaying in window:
-* Pygame
-* OpenGL
+use `pip unfreeze requirements.txt`
 
 ## Usage
 
