@@ -153,7 +153,7 @@ def PrepareFaces(returnedLumps):
 
 		# this means - get first "base" index, take second index, take next edge and one of the indices (the new one),
 		# take next edge and another new index, until all edges from face taken, save the triplets to triangles array
-		print(face)
+		#print(face)
 		base = face[0]
 		count = face[1]-1 #!!! since im building triangles on my own, the last edge is not needed
 		tricount+=count-1 # 4 edges = 2 tris, 5 edges = 3 tris etc

@@ -1,31 +1,12 @@
 import numpy as np
 import pygame
 from pygame.locals import *
-from OpenGL.GL import *
-from OpenGL.GLU import *
 
 from camera import Camera
 from opengl_basic import *
 from BSP import *
 
-def main():
-
-	useCustomShader = True
-
-	returnedLumps = GetBSPData("surf_treehouse_run.bsp")
-
-	#debug 
-	# testverts = np.array([[-100,500,300], [100,500,300], [100,500,500]], dtype=np.float32)
-	# testedges = np.array([[0,1],[1,2],[2,0]], dtype=np.int16)
-	# testsurfedges = np.array([[0],[1],[2]], dtype=np.int32)
-	# testfaces = np.array([[0,3]], dtype=np.int32)
-	
-	#returnedLumps[3]=testverts
-	#returnedLumps[12]=testedges
-	#returnedLumps[13]=testsurfedges
-	#returnedLumps[7]=testfaces
-
-	#after parsing
+def RunWindow(returnedLumps):
 	print("Pygame init")
 	pygame.init()
 	display = (800,600)
@@ -84,6 +65,50 @@ def main():
 	# cleanup @TODO: Move this to quit event :|
 	print("exit")
 	CleanupOpenGL()
+
+def EntitiesToPythonDict(ents: str):
+	import json
+	afterReplace = ents.replace(" ",":").replace('"\n"','",\n"').replace('\\', '\\\\').replace("}\n{", "},\n{")
+	jsonable = "["+afterReplace+"]"
+	#print(jsonable)
+	return json.loads(jsonable)
+
+def GetAllBoostCoords(ents,lumps):
+	for e in ents:
+		if e['classname']=='trigger_push':
+			# find model index:
+			mIdx = int(e['model'][1:])
+
+			# get that model from lumps
+			#model = lumps[LumpsEnum.LUMP_MODELS.value][mIdx]
+
+			# get corresponding faces
+
+def main():
+
+	useCustomShader = True
+
+	# lumps are returned as np.array, sometimes signed.
+	# entity lump is special, its just a string
+	returnedLumps = GetBSPData("ss2.bsp", lumpsMask=1)
+
+	ents = EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
+
+	boostCoords = GetAllBoostCoords(ents, returnedLumps)
+	
+	#debug 
+	# testverts = np.array([[-100,500,300], [100,500,300], [100,500,500]], dtype=np.float32)
+	# testedges = np.array([[0,1],[1,2],[2,0]], dtype=np.int16)
+	# testsurfedges = np.array([[0],[1],[2]], dtype=np.int32)
+	# testfaces = np.array([[0,3]], dtype=np.int32)
+	
+	#returnedLumps[3]=testverts
+	#returnedLumps[12]=testedges
+	#returnedLumps[13]=testsurfedges
+	#returnedLumps[7]=testfaces
+
+	#after parsing
+	#RunWindow(returnedLumps)
 
 if __name__=="__main__":
 	main()
