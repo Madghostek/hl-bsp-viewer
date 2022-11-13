@@ -4,6 +4,16 @@ Python program to parse .bsp files and do stuff with it.
 With awful debug shader™ !!!
 ![awful shader](https://github.com/madghostek/hl-bsp-viewer/blob/main/debugview.png?raw=true)
 
+## Requirements
+Parsing file only:
+* numpy
+* argparse
+* json
+
+Displaying in window:
+* Pygame
+* OpenGL
+
 ## Usage
 
 run `BSPRead.py -h` for help:
@@ -25,10 +35,10 @@ optional arguments:
   example: BSPRead maps/de_dust2.bsp -d
 ```
 
-# Controls
-LBM and drag - rotate camera
-AWSD - move around
-QE - look to left/right
-up/down arrow - move up down
-ctrl+r - reset to origin
-ctrl-g - teleport to location (you need to run the script from some kind of console for that)
+## Controls
+* LBM and drag - rotate camera
+* AWSD - move around
+* QE - look to left/right
+* up/down arrow - move up down
+* ctrl+r - reset to origin
+* ctrl-g - teleport to location (you need to run the script from some kind of console for that)
