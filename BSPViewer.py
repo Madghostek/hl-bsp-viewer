@@ -116,7 +116,7 @@ def GetAllBoostCoords(ents,lumps):
 			for edge in edges:
 				v1i, v2i = lumps[LumpsEnum.LUMP_EDGES.value][edge]
 				v1, v2 = lumps[LumpsEnum.LUMP_VERTICES.value][v1i].tolist(),lumps[LumpsEnum.LUMP_VERTICES.value][v2i].tolist()
-				realedges.append([tuple(map(lambda x: round(x,2),v1)),tuple(map(lambda x: round(x,2),v1))])
+				realedges.append([tuple(map(lambda x: round(x,2),v1)),tuple(map(lambda x: round(x,2),v2))])
 			boosts.append(realedges)
 	return boosts
 
