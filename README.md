@@ -11,7 +11,7 @@ use `pip unfreeze requirements.txt`
 
 run `BSPRead.py -h` for help:
 
-```usage: BSPRead.py [-h] [--boosts [BOOSTS]] [--display] filename
+```usage: BSPViewer.py [-h] [--boosts [BOOSTS]] [--serialiser SERIALISER] [--display] filename
 
 View BSP maps
 
@@ -21,11 +21,15 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --boosts [BOOSTS], -b [BOOSTS]
-                        find boosts present in map and save edge coordinates
-                        to a file (json)
+                        find boosts present in map and save edge coordinates to a file. If `--serialiser` not specified,
+                        deduces output format from extension (json or csv)
+  --serialiser SERIALISER, -s SERIALISER
+                        `boosts` optput format, if no output filename given
   --display, -d         show map in OpenGL window
-  
-  example: BSPRead.py maps/de_dust2.bsp -d
+
+examples: 	python3 BSPViewer.py maps/de_dust2.bsp -d
+		python3 BSPViewer.py maps/de_dust2.bsp -b output.json
+		python3 BSPViewer.py maps/de_dust2.bsp -b -s csv
 ```
 
 ## Controls
