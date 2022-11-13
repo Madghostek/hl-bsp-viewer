@@ -123,16 +123,17 @@ def GetAllBoostCoords(ents,lumps):
 def main():
 
 	parser = argparse.ArgumentParser(
+					formatter_class=argparse.RawTextHelpFormatter,
                     prog = 'BSPViewer.py',
                     description = 'View BSP maps',
-                    epilog = 'examples: python3 BSPViewer.py maps/de_dust2.bsp -d\n\
-                    					python3 BSPViewer.py maps/de_dust2.bsp -b output.json\n\
-                    					python3 BSPViewer.py maps/de_dust2.bsp -b -s csv')
+                    epilog = 'examples: \tpython3 BSPViewer.py maps/de_dust2.bsp -d\n\
+		python3 BSPViewer.py maps/de_dust2.bsp -b output.json\n\
+		python3 BSPViewer.py maps/de_dust2.bsp -b -s csv')
 	parser.add_argument('filename', type=str, help='BSP map path')
 	parser.add_argument('--boosts', '-b', nargs='?',  help='find boosts present in map and save edge coordinates to a file. If `--serialiser` not specified, Deduces output format from extension (json or csv)', const="nopath")
 	parser.add_argument('--serialiser','-s', help='`boosts` optput format, if no output filename given')
 	parser.add_argument('--display','-d',action='store_true', help='show map in OpenGL window')
-	args = parser.parse_args(["ss2.bsp", "-b"])
+	args = parser.parse_args()
 
 	if args.serialiser not in ('csv','json', None):
 		print("Serialiser invalid, only csv and json available")
@@ -168,13 +169,13 @@ def main():
 			fname = args.filename[:-5]+"_boosts.json" if args.boosts == "nopath" else args.boosts
 			print("writing to ",fname)
 			with open(fname, "w") as f:
-				f.write(boostsJson)
+				f.write(boostsString)
 		else:
 			import csv
 			fname = args.filename[:-4]+"_boosts.csv" if args.boosts == "nopath" else args.boosts
 			print("writing to",fname)
 			with open(fname, 'w') as csvfile:
-				writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE,escapechar=' ')
+				writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter='\t')
 				for idx,boost in enumerate(boostCoords):
 					writer.writerow([f"boost #{idx}"])
 					for edge in boost:
