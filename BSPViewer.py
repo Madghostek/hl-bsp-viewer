@@ -12,7 +12,7 @@ def RunWindow(returnedLumps):
 
 	print("Pygame init")
 	pygame.init()
-	display = (1920,1080)
+	display = (800,600)
 	pygame.display.set_mode(display, pygame.locals.DOUBLEBUF|pygame.locals.OPENGL)
 
 	print("OpenGL init")
