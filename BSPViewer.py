@@ -4,6 +4,8 @@ import argparse
 from BSP import *
 import json
 
+import os # for os.path.basename
+
 def RunWindow(returnedLumps):
 	import pygame
 	import pygame.locals
@@ -191,11 +193,13 @@ def main():
 			fname = args.filename[:-4]+"_boosts.csv" if args.boosts == "nopath" else args.boosts
 			print("writing to",fname)
 			with open(fname, 'w') as csvfile:
-				writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter='\t')
+				#writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter='\t')
+				writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter=",")
+				base = os.path.basename(args.filename)[:-4]
 				for idx,boost in enumerate(boostCoords):
-					writer.writerow([f"boost #{idx}"])
-					for edge in boost:
-						writer.writerow(edge)
+					for eIdx,edge in enumerate(boost):
+						values = [base, f"boost #{idx+1} {eIdx+1}/{len(boost)}", *edge[0],*edge[1], 3]
+						writer.writerow(values)
 
 	
 	#debug 
