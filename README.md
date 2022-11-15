@@ -9,7 +9,7 @@ use `pip unfreeze requirements.txt`
 
 ## Usage
 
-run `BSPRead.py -h` for help:
+run `BSPViewer.py -h` for help:
 
 ```usage: BSPViewer.py [-h] [--boosts [BOOSTS]] [--serialiser SERIALISER] [--display] filename
 
