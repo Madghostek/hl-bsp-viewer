@@ -1,10 +1,10 @@
 import numpy as np
 import argparse
-
-from BSP import *
 import json
-
 import os # for os.path.basename
+
+import utils
+from BSP import *
 
 def RunWindow(returnedLumps):
 	import pygame
@@ -81,60 +81,6 @@ def RunWindow(returnedLumps):
 	print("exit")
 	opengl_basic.CleanupOpenGL()
 
-def EntitiesToPythonDict(ents: str):
-	afterReplace = ents.replace(" ",":").replace('"\n"','",\n"').replace('\\', '\\\\').replace("}\n{", "},\n{")
-	jsonable = "["+afterReplace+"]"
-
-	return json.loads(jsonable)
-
-
-def GetAllBoostCoords(ents,lumps):
-	boosts = []
-	for e in ents:
-		if e['classname']=='trigger_push':
-			# find model index:
-			mIdx = int(e['model'][1:])
-
-			# get that model from lumps
-			model = lumps[LumpsEnum.LUMP_MODELS.value][mIdx]
-
-			# get faces
-			facesIdx, nFaces = model[14], model[15]
-
-			# get all edges
-			edges = []
-
-			for face in lumps[LumpsEnum.LUMP_FACES.value][facesIdx:facesIdx+nFaces]:
-				surfedgesIdx, nSurfedges = face[0],face[1]
-				edges.extend(lumps[LumpsEnum.LUMP_SURFEDGES.value][surfedgesIdx:surfedgesIdx+nSurfedges])
-
-			edges=np.concatenate(edges)
-
-			# make all indices positive
-			edges = set(map(lambda x: abs(x),edges))
-
-			# get all vertex values
-			realedges = []
-			for edge in edges:
-				v1i, v2i = lumps[LumpsEnum.LUMP_EDGES.value][edge]
-				v1, v2 = lumps[LumpsEnum.LUMP_VERTICES.value][v1i].tolist(),lumps[LumpsEnum.LUMP_VERTICES.value][v2i].tolist()
-				realedges.append([tuple(map(lambda x: round(x,2),v1)),tuple(map(lambda x: round(x,2),v2))])
-			boosts.append(realedges)
-	return boosts
-
-# def DebugBoost(coords):
-# 	import matplotlib.pyplot as plt
-# 	from mpl_toolkits.mplot3d import Axes3D
-
-# 	fig = plt.figure()
-# 	ax  = fig.add_subplot(111, projection = '3d')
-
-# 	x,y,z=[],[],[]
-# 	for edge in coords:
-# 		print(edge)
-# 		ax.plot([edge[0][0],edge[1][0]],[edge[0][1],edge[1][1]],[edge[0][2],edge[1][2]])
-# 	plt.show()
-
 def main():
 
 	parser = argparse.ArgumentParser(
@@ -150,14 +96,19 @@ def main():
 	parser.add_argument('--display','-d',action='store_true', help='show map in OpenGL window')
 	args = parser.parse_args()
 
+	# don't detect serialiser from filename at first
 	if args.serialiser not in ('csv','json', None):
 		print("Serialiser invalid, only csv and json available")
-		exit(1)
-	if args.boosts!="nopath" and args.boosts[-5:] != '.json' and args.boosts[-4:] != '.csv':
-		print("Boosts file output invalid, only .csv and .json available")
-		exit(1)
-	
-	serialiser = args.serialiser if args.serialiser else "json" if args.boosts[-5:]==".json" else "csv"
+		args.serialiser= None
+
+	if not args.serialiser and args.boosts!="nopath":
+		try:
+			args.serialiser = os.path.splitext(args.boosts)[1][1:] # extension without dot
+		except:
+			# index error
+			print("Couldn't detect serialiser from output path, using csv")
+			args.serialiser='csv'
+	base = os.path.splitext(os.path.split(args.filename)[1])[0] # get file name without ext
 
 	# lumps are returned as np.array, sometimes signed.
 	# entity lump is special, its just a string
@@ -168,13 +119,13 @@ def main():
 	returnedLumps = GetBSPData(args.filename)
 
 	if args.boosts:
-		ents = EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
+		ents = utils.EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
 
 		# list of boosts in map
 		#	- boost is a tuple of 12 edges (parallelpiped)
 		#		- edge is a tuple of two vertices
 		#			- vertex is a tuple of 3 floats
-		boostCoords = GetAllBoostCoords(ents, returnedLumps)
+		boostCoords = utils.GetAllClassLines(ents, returnedLumps, "trigger_push")
 		
 		#DebugBoost(boostCoords[0])
 
@@ -182,23 +133,24 @@ def main():
 			print(f"boost #{idx}:")
 			for edge in boost:
 				print("\t",edge)
-		if serialiser == 'json':
+
+		if args.serialiser == 'json':
 			boostsString = json.dumps(boostCoords)
-			fname = args.filename[:-5]+"_boosts.json" if args.boosts == "nopath" else args.boosts
+			fname = base+"_boosts.json" if args.boosts == "nopath" else args.boosts
 			print("writing to ",fname)
 			with open(fname, "w") as f:
 				f.write(boostsString)
 		else:
 			import csv
-			fname = args.filename[:-4]+"_boosts.csv" if args.boosts == "nopath" else args.boosts
+			fname = base+"_boosts.csv" if args.boosts == "nopath" else args.boosts
 			print("writing to",fname)
 			with open(fname, 'w') as csvfile:
 				#writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter='\t')
 				writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter=",")
-				base = os.path.basename(args.filename)[:-4]
+				entryName = os.path.basename(args.filename)[:-4]
 				for idx,boost in enumerate(boostCoords):
 					for eIdx,edge in enumerate(boost):
-						values = [base, f"boost #{idx+1} {eIdx+1}/{len(boost)}", *edge[0],*edge[1], 3]
+						values = [entryName, f"trigger_push #{idx+1} {eIdx+1}/{len(boost)}", *edge[0],*edge[1], 3]
 						writer.writerow(values)
 
 	

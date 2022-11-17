@@ -158,8 +158,8 @@ def GetBSPData(fname, debug=False, lumpsMask = 0x8000-1):
 			rawData = GetRawLump(bsp,offset,length)
 			if debug:
 				print(idx,offset,length)
-			#with open(lumpNames[idx]+".raw","wb") as f:
-				#f.write(rawData)
+			with open(gLumpNames[idx]+".raw","wb") as f:
+				f.write(rawData)
 
 			if idx in gCallbacks and lumpsMask&2**idx:
 				gCallbacks[idx](rawData, length, returnedLumps)
