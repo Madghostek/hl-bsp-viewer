@@ -120,19 +120,21 @@ def main():
 
 	if args.boosts:
 		ents = utils.EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
+		#print(ents)
 
 		# list of boosts in map
 		#	- boost is a tuple of 12 edges (parallelpiped)
 		#		- edge is a tuple of two vertices
 		#			- vertex is a tuple of 3 floats
 		boostCoords = utils.GetAllClassLines(ents, returnedLumps, "trigger_push")
+		#print(boostCoords)
 		
 		#DebugBoost(boostCoords[0])
 
-		for idx,boost in enumerate(boostCoords):
-			print(f"boost #{idx}:")
-			for edge in boost:
-				print("\t",edge)
+		# for idx,boost in enumerate(boostCoords):
+		# 	print(f"boost #{idx}:")
+		# 	for edge in boost:
+		# 		print("\t",edge)
 
 		if args.serialiser == 'json':
 			boostsString = json.dumps(boostCoords)
@@ -147,10 +149,10 @@ def main():
 			with open(fname, 'w') as csvfile:
 				#writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter='\t')
 				writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter=",")
-				entryName = os.path.basename(args.filename)[:-4]
-				for idx,boost in enumerate(boostCoords):
-					for eIdx,edge in enumerate(boost):
-						values = [entryName, f"trigger_push #{idx+1} {eIdx+1}/{len(boost)}", *edge[0],*edge[1], 3]
+				for boost in boostCoords:
+					for idx,edge in enumerate(boostCoords[boost]):
+						values = [base,f"{boost} {idx+1}/{len(boostCoords[boost])}", *edge[0],*edge[1], 3]
+						print(values)
 						writer.writerow(values)
 
 	

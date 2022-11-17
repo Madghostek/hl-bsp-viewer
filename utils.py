@@ -12,7 +12,7 @@ def EntitiesToPythonDict(ents: str):
 
 # returns a list of edges of model, for each entity with matching classname
 def GetAllClassLines(ents,lumps, classname):
-	EntityBoundLines = []
+	EntityBoundLines = {}
 	for e in ents:
 		if e['classname']==classname:
 			# find model index:
@@ -20,7 +20,6 @@ def GetAllClassLines(ents,lumps, classname):
 				e['model']
 			except:
 				raise ValueError("This classname doesn't have a model!")
-			entityName = "123"
 
 			mIdx = int(e['model'][1:])
 
@@ -48,7 +47,10 @@ def GetAllClassLines(ents,lumps, classname):
 				v1i, v2i = lumps[LumpsEnum.LUMP_EDGES.value][edge]
 				v1, v2 = lumps[LumpsEnum.LUMP_VERTICES.value][v1i].tolist(),lumps[LumpsEnum.LUMP_VERTICES.value][v2i].tolist()
 				realedges.append([tuple(map(lambda x: round(x,2),v1)),tuple(map(lambda x: round(x,2),v2))])
-			EntityBoundLines.append(realedges)
+
+			description = classname+" "+e['model']
+
+			EntityBoundLines[description]=realedges
 	return EntityBoundLines
 
 # def DebugBoost(coords):
