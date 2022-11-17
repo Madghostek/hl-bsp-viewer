@@ -23,11 +23,15 @@ def GetAllClassLines(ents,lumps, classname):
 
 			mIdx = int(e['model'][1:])
 
+
 			# get that model from lumps
 			model = lumps[LumpsEnum.LUMP_MODELS.value][mIdx]
-
+			
 			# get faces
 			facesIdx, nFaces = model[14], model[15]
+
+			if nFaces==0:
+				continue
 
 			# get all edges
 			edges = []

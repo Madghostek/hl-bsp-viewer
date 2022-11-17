@@ -102,12 +102,7 @@ def main():
 		args.serialiser= None
 
 	if not args.serialiser and args.boosts!="nopath":
-		try:
-			args.serialiser = os.path.splitext(args.boosts)[1][1:] # extension without dot
-		except:
-			# index error
-			print("Couldn't detect serialiser from output path, using csv")
-			args.serialiser='csv'
+		args.serialiser = os.path.splitext(args.boosts)[1][1:] # extension without dot
 	base = os.path.splitext(os.path.split(args.filename)[1])[0] # get file name without ext
 
 	# lumps are returned as np.array, sometimes signed.
@@ -142,7 +137,7 @@ def main():
 			print("writing to ",fname)
 			with open(fname, "w") as f:
 				f.write(boostsString)
-		else:
+		elif args.serialiser == 'csv':
 			import csv
 			fname = base+"_boosts.csv" if args.boosts == "nopath" else args.boosts
 			print("writing to",fname)
@@ -154,7 +149,8 @@ def main():
 						values = [base,f"{boost} {idx+1}/{len(boostCoords[boost])}", *edge[0],*edge[1], 3]
 						print(values)
 						writer.writerow(values)
-
+		else:
+			print("unknown serialiser, use -s, or specify supported extension")
 	
 	#debug 
 	# testverts = np.array([[-100,500,300], [100,500,300], [100,500,500]], dtype=np.float32)
