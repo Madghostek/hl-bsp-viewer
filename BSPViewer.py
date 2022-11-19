@@ -105,7 +105,7 @@ def main():
 		python3 BSPViewer.py maps/de_dust2.bsp -e trigger_teleport -s csv')
 	parser.add_argument('filename', type=str, help='BSP map path')
 	parser.add_argument('--entities', '-e', nargs='?',  help='exports entity bounding lines to display on server.')
-	parser.add_argument('--outpath', '-o', nargs='?',  help='output path for entities. Supported formats: (json, csv)', const="nopath")
+	parser.add_argument('--outpath', '-o', nargs='?',  help='output path for entities. Supported formats: (json, csv)')
 	parser.add_argument('--serialiser','-s', help='force `outpath` format to something else')
 	parser.add_argument('--display','-d',action='store_true', help='show map in OpenGL window')
 	args = parser.parse_args()
@@ -116,9 +116,12 @@ def main():
 		args.serialiser= None
 
 	# serialiser not specified, but outpath was, try to guess the format
-	if not args.serialiser and args.outpath!="nopath":
+	if not args.serialiser and args.outpath:
 		args.serialiser = os.path.splitext(args.outpath)[1][1:] # extension without dot
+	else:
+		args.serialiser= 'csv'
 	base = os.path.splitext(os.path.split(args.filename)[1])[0] # get file name without ext
+
 
 	# lumps are returned as np.array, sometimes signed.
 	# entity lump is special, its just a string
@@ -142,13 +145,13 @@ def main():
 
 		if args.serialiser == 'json':
 			outputString = json.dumps(entityLines)
-			fname = base+"_boosts.json" if args.outpath == "nopath" else args.outpath
+			fname = base+"_boosts.json" if not args.outpath else args.outpath
 			print("writing to ",fname)
 			with open(fname, "w") as f:
 				f.write(outputString)
 		elif args.serialiser == 'csv':
 			import csv
-			fname = base+"_boosts.csv" if args.outpath == "nopath" else args.outpath
+			fname = base+"_boosts.csv" if not args.outpath else args.outpath
 			print("writing to",fname)
 			with open(fname, 'w') as csvfile:
 				#writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter='\t')
