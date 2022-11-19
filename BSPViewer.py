@@ -100,9 +100,9 @@ def main():
 					formatter_class=argparse.RawTextHelpFormatter,
                     prog = 'BSPViewer.py',
                     description = 'View BSP maps',
-                    epilog = 'examples: \tpython3 BSPViewer.py maps/de_dust2.bsp -d\n\
-		python3 BSPViewer.py maps/de_dust2.bsp -e trigger_push -o output.json\n\
-		python3 BSPViewer.py maps/de_dust2.bsp -e trigger_teleport -s csv')
+                    epilog = 'examples: \n\nShows the map in a window:\n\tpython3 BSPViewer.py maps/de_dust2.bsp -d\n\n\
+Saves all trigger_push bounding edges to a json file:\n\tpython3 BSPViewer.py maps/de_dust2.bsp -e trigger_push -o output.json\n\n\
+Saves all trigger_teleport bounding edges to a csv file with default name:\n\tpython3 BSPViewer.py maps/de_dust2.bsp -e trigger_teleport -s csv')
 	parser.add_argument('filename', type=str, help='BSP map path')
 	parser.add_argument('--entities', '-e', nargs='?',  help='exports entity bounding lines to display on server.')
 	parser.add_argument('--outpath', '-o', nargs='?',  help='output path for entities. Supported formats: (json, csv)')

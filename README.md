@@ -11,7 +11,8 @@ use `pip unfreeze requirements.txt`
 
 run `BSPViewer.py -h` for help:
 
-```usage: BSPViewer.py [-h] [--boosts [BOOSTS]] [--serialiser SERIALISER] [--display] filename
+```
+usage: BSPViewer.py [-h] [--entities [ENTITIES]] [--outpath [OUTPATH]] [--serialiser SERIALISER] [--display] filename
 
 View BSP maps
 
@@ -20,16 +21,24 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --boosts [BOOSTS], -b [BOOSTS]
-                        find boosts present in map and save edge coordinates to a file. If `--serialiser` not specified,
-                        deduces output format from extension (json or csv)
+  --entities [ENTITIES], -e [ENTITIES]
+                        exports entity bounding lines to display on server.
+  --outpath [OUTPATH], -o [OUTPATH]
+                        output path for entities. Supported formats: (json, csv)
   --serialiser SERIALISER, -s SERIALISER
-                        `boosts` optput format, if no output filename given
+                        force `outpath` format to something else
   --display, -d         show map in OpenGL window
 
-examples: 	python3 BSPViewer.py maps/de_dust2.bsp -d
-		python3 BSPViewer.py maps/de_dust2.bsp -b output.json
-		python3 BSPViewer.py maps/de_dust2.bsp -b -s csv
+examples: 
+
+Shows the map in a window:
+  python3 BSPViewer.py maps/de_dust2.bsp -d
+
+Saves all trigger_push bounding edges to a json file:
+  python3 BSPViewer.py maps/de_dust2.bsp -e trigger_push -o output.json
+
+Saves all trigger_teleport bounding edges to a csv file with default name:
+  python3 BSPViewer.py maps/de_dust2.bsp -e trigger_teleport -s csv
 ```
 
 ## Controls
