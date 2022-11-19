@@ -30,7 +30,9 @@ def GetAllClassLines(ents,lumps, classname):
 			# get faces
 			facesIdx, nFaces = model[14], model[15]
 
-			if nFaces==0:
+			if nFaces<=0:
+				print("!!! WARNING !!!")
+				print(f"{classname} *{mIdx} Invalid face count:",nFaces)
 				continue
 
 			# get all edges

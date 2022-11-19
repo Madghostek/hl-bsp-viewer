@@ -81,6 +81,19 @@ def RunWindow(returnedLumps):
 	print("exit")
 	opengl_basic.CleanupOpenGL()
 
+def DebugBoost(coords):
+	import matplotlib.pyplot as plt
+	from mpl_toolkits.mplot3d import Axes3D
+
+	fig = plt.figure()
+	ax  = fig.add_subplot(111, projection = '3d')
+
+	x,y,z=[],[],[]
+	for edge in coords:
+		print(edge)
+		ax.plot([edge[0][0],edge[1][0]],[edge[0][1],edge[1][1]],[edge[0][2],edge[1][2]])
+	plt.show()
+
 def main():
 
 	parser = argparse.ArgumentParser(
@@ -88,11 +101,12 @@ def main():
                     prog = 'BSPViewer.py',
                     description = 'View BSP maps',
                     epilog = 'examples: \tpython3 BSPViewer.py maps/de_dust2.bsp -d\n\
-		python3 BSPViewer.py maps/de_dust2.bsp -b output.json\n\
-		python3 BSPViewer.py maps/de_dust2.bsp -b -s csv')
+		python3 BSPViewer.py maps/de_dust2.bsp -e trigger_push -o output.json\n\
+		python3 BSPViewer.py maps/de_dust2.bsp -e trigger_teleport -s csv')
 	parser.add_argument('filename', type=str, help='BSP map path')
-	parser.add_argument('--boosts', '-b', nargs='?',  help='find boosts present in map and save edge coordinates to a file. If `--serialiser` not specified, Deduces output format from extension (json or csv)', const="nopath")
-	parser.add_argument('--serialiser','-s', help='`boosts` optput format, if no output filename given')
+	parser.add_argument('--entities', '-e', nargs='?',  help='exports entity bounding lines to display on server.')
+	parser.add_argument('--outpath', '-o', nargs='?',  help='output path for entities. Supported formats: (json, csv)', const="nopath")
+	parser.add_argument('--serialiser','-s', help='force `outpath` format to something else')
 	parser.add_argument('--display','-d',action='store_true', help='show map in OpenGL window')
 	args = parser.parse_args()
 
@@ -101,8 +115,9 @@ def main():
 		print("Serialiser invalid, only csv and json available")
 		args.serialiser= None
 
-	if not args.serialiser and args.boosts!="nopath":
-		args.serialiser = os.path.splitext(args.boosts)[1][1:] # extension without dot
+	# serialiser not specified, but outpath was, try to guess the format
+	if not args.serialiser and args.outpath!="nopath":
+		args.serialiser = os.path.splitext(args.outpath)[1][1:] # extension without dot
 	base = os.path.splitext(os.path.split(args.filename)[1])[0] # get file name without ext
 
 	# lumps are returned as np.array, sometimes signed.
@@ -113,40 +128,34 @@ def main():
 	# 	mask|=2**15-1 #everything
 	returnedLumps = GetBSPData(args.filename)
 
-	if args.boosts:
+	if args.entities:
 		ents = utils.EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
 		#print(ents)
 
-		# list of boosts in map
-		#	- boost is a tuple of 12 edges (parallelpiped)
-		#		- edge is a tuple of two vertices
-		#			- vertex is a tuple of 3 floats
-		boostCoords = utils.GetAllClassLines(ents, returnedLumps, "trigger_push")
-		#print(boostCoords)
+		# list of edges of entities with some desired class
+		print(f"finding all {args.entities}...")
+		entityLines = utils.GetAllClassLines(ents, returnedLumps, args.entities)
 		
-		#DebugBoost(boostCoords[0])
+		print(args.entities, "count: ",len(entityLines))
 
-		# for idx,boost in enumerate(boostCoords):
-		# 	print(f"boost #{idx}:")
-		# 	for edge in boost:
-		# 		print("\t",edge)
+		#DebugBoost(list(entityLines.values())[0])
 
 		if args.serialiser == 'json':
-			boostsString = json.dumps(boostCoords)
-			fname = base+"_boosts.json" if args.boosts == "nopath" else args.boosts
+			outputString = json.dumps(entityLines)
+			fname = base+"_boosts.json" if args.outpath == "nopath" else args.outpath
 			print("writing to ",fname)
 			with open(fname, "w") as f:
-				f.write(boostsString)
+				f.write(outputString)
 		elif args.serialiser == 'csv':
 			import csv
-			fname = base+"_boosts.csv" if args.boosts == "nopath" else args.boosts
+			fname = base+"_boosts.csv" if args.outpath == "nopath" else args.outpath
 			print("writing to",fname)
 			with open(fname, 'w') as csvfile:
 				#writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter='\t')
 				writer = csv.writer(csvfile,quoting=csv.QUOTE_NONE, delimiter=",")
-				for boost in boostCoords:
-					for idx,edge in enumerate(boostCoords[boost]):
-						values = [base,f"{boost} {idx+1}/{len(boostCoords[boost])}", *edge[0],*edge[1], 3]
+				for boost in entityLines:
+					for idx,edge in enumerate(entityLines[boost]):
+						values = [base,f"{boost} {idx+1}/{len(entityLines[boost])}", *edge[0],*edge[1], 3]
 						print(values)
 						writer.writerow(values)
 		else:
