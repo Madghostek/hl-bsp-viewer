@@ -5,7 +5,7 @@ With awful debug shader™ !!!
 ![awful shader](https://github.com/madghostek/hl-bsp-viewer/blob/main/debugview.png?raw=true)
 
 ## Requirements
-use `pip unfreeze requirements.txt`
+use `pip install -r requirements.txt`
 
 ## Usage
 
