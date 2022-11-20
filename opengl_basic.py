@@ -39,7 +39,7 @@ uniform float forceColor;
 
 void main(){
 	if (forceColor==-1.0)
-		FragColor = vec4(0.8,(gl_PrimitiveID%5)/4.0,1, 1.0);
+		FragColor = vec4(0.8,(gl_PrimitiveID%5)/4.0,1, 0.5);
 	else
 		FragColor = vec4(0,0,0, 1.0);
 	//FragColor = vec4(0.8,2*(position.y-ymin)/(ymax-ymin),2-2*(position.y-ymin)/(ymax-ymin), 1.0);

@@ -131,6 +131,10 @@ Saves all trigger_teleport bounding edges to a csv file with default name:\n\tpy
 	# 	mask|=2**15-1 #everything
 	returnedLumps = GetBSPData(args.filename)
 
+	faceIdxs = utils.GetAllModelFaces(1, returnedLumps);
+
+	print(faceIdxs)
+
 	if args.entities:
 		ents = utils.EntitiesToPythonDict(returnedLumps[LumpsEnum.LUMP_ENTITIES.value])
 		#print(ents)

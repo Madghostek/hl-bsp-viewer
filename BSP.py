@@ -1,5 +1,6 @@
 import struct, numpy as np
 from enum import IntEnum
+import lump_classes
 
 gLumpNames = ["LUMP_ENTITIES","LUMP_PLANES","LUMP_TEXTURES","LUMP_VERTICES","LUMP_VISIBILITY","LUMP_NODES","LUMP_TEXINFO","LUMP_FACES","LUMP_LIGHTING","LUMP_CLIPNODES","LUMP_LEAVES","LUMP_MARKSURFACES","LUMP_EDGES","LUMP_SURFEDGES","LUMP_MODELS","HEADER_LUMPS"]
 
@@ -60,6 +61,10 @@ def PlanesCallback(raw,length,returnedLumps):
 def VerticesCallback(raw,length,returnedLumps):
 	vertices = GetChunks(raw, length, "fff") # xyz
 	returnedLumps[LumpsEnum.LUMP_VERTICES.value]=np.array(vertices, dtype=np.float32)
+
+def NodesCallback(raw,length,returnedLumps):
+	for x in GetChunks(raw, length, "I2h3h3hHH"):
+		returnedLumps[LumpsEnum.LUMP_NODES.value].append(lump_classes.Node(x[0],x[1:3],x[3:6],x[6:9],x[9],x[10]))
 
 def FacesCallback(raw,length, returnedLumps):
 	global gFaces
@@ -129,14 +134,18 @@ def SurfedgesCallback(raw,length,returnedLumps):
 	returnedLumps[LumpsEnum.LUMP_SURFEDGES.value]=np.array(GetChunks(raw,length,"i"), dtype=np.int32) # signed ints, indexes into edges
 
 def ModelsCallback(raw,length,returnedLumps):
-	# bounding box, then origin coords, then hull something, then Vis leafs index, then finally first face index and face count
-	returnedLumps[LumpsEnum.LUMP_MODELS.value]=GetChunks(raw,length,"3f3f3f4ii2i") 
+	# bounding box, then origin coords, then hulls, then Vis leafs index, then finally first face index and face count
+
+	for x in GetChunks(raw,length,"3f3f3f4ii2i"):
+		returnedLumps[LumpsEnum.LUMP_MODELS.value].append(lump_classes.Model(x[0:3],x[3:6],x[6:9],x[9:13],x[13],x[14],x[15]))
+
 
 
 gCallbacks = {
 	LumpsEnum.LUMP_ENTITIES.value: EntitiesCallback,
 	LumpsEnum.LUMP_PLANES.value: PlanesCallback,
 	LumpsEnum.LUMP_VERTICES.value: VerticesCallback, # used only for edges
+	LumpsEnum.LUMP_NODES.value: NodesCallback,
 	LumpsEnum.LUMP_FACES.value: FacesCallback,
 	LumpsEnum.LUMP_CLIPNODES.value: ClipnodesCallback,
 	LumpsEnum.LUMP_LEAVES.value : LeavesCallback,
@@ -146,8 +155,8 @@ gCallbacks = {
 	LumpsEnum.LUMP_MODELS.value: ModelsCallback
 }
 
-def GetBSPData(fname, debug=False, lumpsMask = 0x8000-1):
-	returnedLumps = [[False] for _ in range(len(gLumpNames))]
+def GetBSPData(fname, debug=False, lumpsMask = 0x8000-1) -> lump_classes.LumpCollection:
+	returnedLumps = [[] for _ in range(len(gLumpNames))]
 	with open(fname,"rb") as bsp:
 		version, lumps = GetGoldsrcHeader(bsp)
 		if debug:

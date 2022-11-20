@@ -28,7 +28,7 @@ def GetAllClassLines(ents,lumps, classname):
 			model = lumps[LumpsEnum.LUMP_MODELS.value][mIdx]
 			
 			# get faces
-			facesIdx, nFaces = model[14], model[15]
+			facesIdx, nFaces = model.iFirstFace, model.nFaces
 
 			if nFaces<=0:
 				print("!!! WARNING !!!")
@@ -71,3 +71,40 @@ def GetAllClassLines(ents,lumps, classname):
 # 		print(edge)
 # 		ax.plot([edge[0][0],edge[1][0]],[edge[0][1],edge[1][1]],[edge[0][2],edge[1][2]])
 # 	plt.show()
+
+# traverses nodes
+
+def GetPlanesForNode(lumps, idx):
+	if idx is None: return []
+	if idx>=0:
+		if idx >= len(lumps[LumpsEnum.LUMP_NODES.value]):
+			return []
+		node = lumps[LumpsEnum.LUMP_NODES.value][idx]
+		children = [x if x!=idx else None for x in node.iChildren]
+		result = []
+		result.extend(GetPlanesForNode(lumps, children[0]))
+		result.extend(GetPlanesForNode(lumps, children[1]))
+		return result
+	else:
+		leaf = lumps[LumpsEnum.LUMP_LEAVES.value][~idx]
+		res = [(leaf[8],leaf[9])]
+		return res
+
+# returns 4 lists - faces for each hull.
+def GetAllModelFaces(mIdx : int, lumps):
+	try:
+		model = lumps[LumpsEnum.LUMP_MODELS.value][mIdx]
+	except:
+		raise ValueError("Invalid model id")
+	faces = []
+	for headNode in model.iHeadNodes:
+		print("hull: ",headNode)
+		marksurfs = GetPlanesForNode(lumps,headNode)
+		
+		# unpack into simple list of indices
+		unpacked = []
+		for m,n in marksurfs:
+			unpacked.extend(list(range(m,m+n)))
+		faces.append(unpacked)
+	return faces
+
