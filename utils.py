@@ -107,4 +107,4 @@ def GetAllModelFaces(mIdx : int, lumps):
 			unpacked.extend(list(range(m,m+n)))
 		faces.append(unpacked)
 	return faces
-
+	

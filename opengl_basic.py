@@ -18,28 +18,36 @@ gBuffers = []
 
 vertex_shader_perspective = """#version 410
 layout(location = 0) in vec3 pos;
-uniform mat4 projection_matrix;
+layout(location = 1) in vec3 vertexColor;
 
 out vec4 position;
+out vec3 fragmentColor;
+
+uniform mat4 projection_matrix;
+
 void main () {
     gl_Position = projection_matrix*vec4(pos, 1.0f);
-    position = vec4(pos, 1.0f);;
+    position = vec4(pos, 1.0f);
+    fragmentColor = vertexColor;
 }""" # lub pos
 
 fragment_shader = """#version 410
 
 in vec4 position;
-out vec4 FragColor;
 
+in vec3 fragmentColor;
 in float rand;
+
+layout(location = 0) out vec4 FragColor;
 
 uniform float ymin;
 uniform float ymax;
 uniform float forceColor;
 
 void main(){
+	//FragColor = vec4(0.8,(gl_PrimitiveID%5)/4.0,1, 1.0);
 	if (forceColor==-1.0)
-		FragColor = vec4(0.8,(gl_PrimitiveID%5)/4.0,1, 0.5);
+		FragColor = vec4(fragmentColor,1.0);
 	else
 		FragColor = vec4(0,0,0, 1.0);
 	//FragColor = vec4(0.8,2*(position.y-ymin)/(ymax-ymin),2-2*(position.y-ymin)/(ymax-ymin), 1.0);
@@ -138,11 +146,16 @@ def PrepareEdges(returnedLumps):
 
 	return len(returnedLumps[LumpsEnum.LUMP_EDGES.value])*2
 
+# retun color based on the plane its parallel to
+def FaceToColor(face):
+	return np.array(np.random.rand(3), dtype=np.float32)
+
 def TriangulateFaces(returnedLumps):
 	# split n-gons into triangles...
 	# when faces lump wants more than 3 vertices at once, split them into 0 1 2, 0 3 4, 0 4 5
 	# now these indices can be inserted into element array, then GL_TRIANGLES can be used
 	triangles = []
+	colors = [] # color for each vertex
 	tricount=0
 	edges = returnedLumps[LumpsEnum.LUMP_EDGES.value]
 	surfedges = returnedLumps[LumpsEnum.LUMP_SURFEDGES.value]
@@ -194,13 +207,19 @@ def TriangulateFaces(returnedLumps):
 			astri.extend([first,astri[-1],newidx]) #append base and last one
 			#print("more",astri)
 			cur+=1
+
 		for i in range(0,len(astri),3):
 			triangles.append(astri[i:i+3])
+			# triangle is single-colored
+			for _ in range(3): colors.append(FaceToColor(face))
+
 	#print("final tri list",triangles)
-	return triangles, tricount
+	return triangles, colors, tricount
+
+
 
 def PrepareFaces(returnedLumps):
-	triangles,tricount = TriangulateFaces(returnedLumps)
+	triangles, colors ,tricount = TriangulateFaces(returnedLumps)
 
 	# turn that into ndarray, send as element buffer (vertex buffer is the same as last time, draw with GL_TRIANGLES...)
 
@@ -214,17 +233,29 @@ def PrepareFaces(returnedLumps):
 	indexBuffer = GLuint()
 	glGenBuffers(1, indexBuffer);
 
-	gBuffers = [vinfo,b1,indexBuffer]
+	colorBuffer = GLuint()
+	glGenBuffers(1, colorBuffer)
+
+	gBuffers = [vinfo,b1,indexBuffer, colorBuffer]
 
 	# # tell OpenGL to use the b1 buffer for rendering, and give it data
 	glBindBuffer(GL_ARRAY_BUFFER, b1)
 	glBufferData(GL_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_VERTICES.value], GL_STATIC_DRAW)
 
 
-	# # describe what the data is (3x float)
+	# enable this attribute index in rendering process
 	glEnableVertexAttribArray(0);
 
+	# describe what the data is (3x float)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); #or None
+
+	# now use color buffer
+	glBindBuffer(GL_ARRAY_BUFFER, colorBuffer)
+	glBufferData(GL_ARRAY_BUFFER, np.array([colors]), GL_STATIC_DRAW)
+
+	# again tell opengl what to do with this data, this time use index 1 (which will be same in the shader)
+	glEnableVertexAttribArray(1); # this could be written later
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); # again 3 floats
 
 	# describe the edges (element buffer)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
