@@ -5,6 +5,7 @@ import typing
 
 Vec3D = npt.NDArray[np.float32]
 
+
 @dataclass
 class Node:
 	iPlane : np.uint32
@@ -13,6 +14,16 @@ class Node:
 	nMaxs : npt.NDArray[np.int16]
 	iFirstFace : np.int16
 	nFaces : np.uint16
+
+@dataclass
+class Face:
+	iPlane : np.uint16
+	nPlaneSide : np.uint16
+	iFirstEdge : np.uint32
+	nEdges : np.uint16
+	iTextureInfo : np.uint16
+	nStyles : npt.NDArray[np.uint8]
+	nLightmapOffset : np.uint16
 
 @dataclass
 class Model:

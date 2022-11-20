@@ -147,8 +147,9 @@ def PrepareEdges(returnedLumps):
 	return len(returnedLumps[LumpsEnum.LUMP_EDGES.value])*2
 
 # retun color based on the plane its parallel to
-def FaceToColor(face):
-	return np.array(np.random.rand(3), dtype=np.float32)
+def FaceToColor(lumps, face):
+	plane = lumps[LumpsEnum.LUMP_PLANES.value][face.iPlane]
+	return np.array(plane[0:3],dtype=np.float32)
 
 def TriangulateFaces(returnedLumps):
 	# split n-gons into triangles...
@@ -167,8 +168,8 @@ def TriangulateFaces(returnedLumps):
 		# this means - get first "base" index, take second index, take next edge and one of the indices (the new one),
 		# take next edge and another new index, until all edges from face taken, save the triplets to triangles array
 		#print(face)
-		base = face[0]
-		count = face[1]-1 #!!! since im building triangles on my own, the last edge is not needed
+		base = face.iFirstEdge
+		count = face.nEdges-1 #!!! since im building triangles on my own, the last edge is not needed
 		tricount+=count-1 # 4 edges = 2 tris, 5 edges = 3 tris etc
 		#print("the edges that will make a face:",surfedges[base:base+count+1])
 		#print("which have these indices...")
@@ -208,10 +209,11 @@ def TriangulateFaces(returnedLumps):
 			#print("more",astri)
 			cur+=1
 
+		color = FaceToColor(returnedLumps,face) # all triangles of given face will have same color
 		for i in range(0,len(astri),3):
 			triangles.append(astri[i:i+3])
 			# triangle is single-colored
-			for _ in range(3): colors.append(FaceToColor(face))
+			for _ in range(3): colors.append(color)
 
 	#print("final tri list",triangles)
 	return triangles, colors, tricount

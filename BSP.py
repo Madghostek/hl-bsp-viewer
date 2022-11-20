@@ -71,9 +71,8 @@ def FacesCallback(raw,length, returnedLumps):
 	# planes index, orientation (bool), index of first surfedge, number of next surfedges, index into textureinfo, 4 lighting styles, lightmap offset
 	
 	# right now only surfedges are interesting for me
-	faces = GetChunks(raw, length, "hhihh4bi")
-	onlyEdges = [(face[2],face[3]) for face in faces]
-	returnedLumps[LumpsEnum.LUMP_FACES.value]=np.array(onlyEdges)
+	for x in GetChunks(raw, length, "hhihh4bi"):
+		returnedLumps[LumpsEnum.LUMP_FACES.value].append(lump_classes.Face(x[0],x[1],x[2],x[3],x[4],x[5:9],x[9]))
 
 	# find planes that don't have a face attached
 	# seen = [False for _ in range(len(returnedLumps[LumpsEnum.LUMP_PLANES.value]))]
