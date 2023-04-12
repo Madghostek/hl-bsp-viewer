@@ -213,15 +213,36 @@ def TriangulateFaces(returnedLumps):
 		for i in range(0,len(astri),3):
 			triangles.append(astri[i:i+3])
 			# triangle is single-colored
-			for _ in range(3): colors.append(color)
+			colors.append([color]*3)
 
 	#print("final tri list",triangles)
 	return triangles, colors, tricount
 
+def MakeUniqueVertices(triangles, vertices):
+	"""
+	Prepares for coloring
+	triangles - list of (v1,v2,v3) tuples - indices into vertices
+	vertices - actual (x,y,z) points that make up triangles
 
+	output - new list of indices and vertices that dont share vertices
+	no need to change anything in colors, it's just the indexes that change.
+	""" 
+
+	rebuildedTriangles = np.array([],dtype=vertices[0].dtype)
+	rebuildedVectices = np.array([],dtype=vertices.dtype)
+
+	i=0
+	for tri in triangles:
+		for v in tri:
+			rebuildedVectices=np.append(rebuildedVectices,vertices[v])
+			rebuildedTriangles=np.append(rebuildedTriangles, i)
+			i+=1
+
+	return rebuildedTriangles,rebuildedVectices
 
 def PrepareFaces(returnedLumps):
 	triangles, colors ,tricount = TriangulateFaces(returnedLumps)
+	triangles, vertices = MakeUniqueVertices(triangles, returnedLumps[LumpsEnum.LUMP_VERTICES.value])
 
 	# turn that into ndarray, send as element buffer (vertex buffer is the same as last time, draw with GL_TRIANGLES...)
 
@@ -242,7 +263,7 @@ def PrepareFaces(returnedLumps):
 
 	# # tell OpenGL to use the b1 buffer for rendering, and give it data
 	glBindBuffer(GL_ARRAY_BUFFER, b1)
-	glBufferData(GL_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_VERTICES.value], GL_STATIC_DRAW)
+	glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
 
 
 	# enable this attribute index in rendering process
