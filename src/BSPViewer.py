@@ -10,8 +10,7 @@ from benchmark import *
 
 def RunWindow(returnedLumps):
 
-    t = TimerMs("RunWindow")
-    print(t)
+    t = TimerMs("[RunWindow]")
 
     t.start("imports")
     import pygame
@@ -97,12 +96,10 @@ def RunWindow(returnedLumps):
 
 def DebugBoost(coords):
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    x, y, z = [], [], []
     for edge in coords:
         print(edge)
         ax.plot([edge[0][0], edge[1][0]], [edge[0][1],
@@ -112,6 +109,9 @@ def DebugBoost(coords):
 
 def main():
 
+    t = TimerMs("[main]")
+
+    t.start("Parse args")
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         prog='BSPViewer.py',
@@ -144,17 +144,24 @@ Saves all trigger_teleport bounding edges to a csv file with default name:\n\tpy
     base = os.path.splitext(os.path.split(args.filename)[1])[
         0]  # get file name without ext
 
+    t.end("Parse args")
+
     # lumps are returned as np.array, sometimes signed.
     # entity lump is special, its just a string
     # lump mask can be used to filter out not needed lumps, this speeds up calculation
     # it's a bitmask, where each lump has nth bit, so use powers of 2
     # if args.display:
-    # 	mask|=2**15-1 #everything
+    #     mask|=2**15-1 #everything
+
+    t.start("Read bsp")
+
     returnedLumps = GetBSPData(args.filename)
 
-    faceIdxs = utils.GetAllModelFaces(1, returnedLumps)
+    t.end("Read bsp")
 
-    print(faceIdxs)
+    # faceIdxs = utils.GetAllModelFaces(1, returnedLumps)
+
+    # print(faceIdxs)
 
     if args.entities:
         ents = utils.EntitiesToPythonDict(

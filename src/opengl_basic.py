@@ -47,12 +47,12 @@ uniform float ymax;
 uniform float forceColor;
 
 void main(){
-	//FragColor = vec4(0.8,(gl_PrimitiveID%5)/4.0,1, 1.0);
-	if (forceColor==-1.0)
-		FragColor = vec4(fragmentColor,1.0);
-	else
-		FragColor = vec4(0,0,0, 1.0);
-	//FragColor = vec4(0.8,2*(position.y-ymin)/(ymax-ymin),2-2*(position.y-ymin)/(ymax-ymin), 1.0);
+    //FragColor = vec4(0.8,(gl_PrimitiveID%5)/4.0,1, 1.0);
+    if (forceColor==-1.0)
+        FragColor = vec4(fragmentColor,1.0);
+    else
+        FragColor = vec4(0,0,0, 1.0);
+    //FragColor = vec4(0.8,2*(position.y-ymin)/(ymax-ymin),2-2*(position.y-ymin)/(ymax-ymin), 1.0);
 }"""
 
 fragment_shader_depth = f"""#version 410
@@ -63,19 +63,19 @@ out vec4 FragColor;
 uniform float ymin;
 uniform float ymax;
 
-float near = {cameraNear}; 
-float far  = {cameraFar};
+float near = {cameraNear};
+float far  = {cameraFar}
 
-float LinearizeDepth(float depth) 
+float LinearizeDepth(float depth)
 {{
-    float z = depth * 2.0 - 1.0; // back to NDC 
-    return (2.0 * near * far) / (far + near - z * (far - near));	
+    float z = depth * 2.0 - 1.0; // back to NDC
+    return (2.0 * near * far) / (far + near - z * (far - near));
 }}
 
 void main(){{
-	ymin;
-	ymax;
-	FragColor = vec4(vec3(LinearizeDepth(gl_FragCoord.z)), 1.0);
+    ymin;
+    ymax;
+    FragColor = vec4(vec3(LinearizeDepth(gl_FragCoord.z)), 1.0);
 }}"""
 
 
@@ -255,9 +255,17 @@ def MakeUniqueVertices(triangles, vertices):
 
 
 def PrepareFaces(returnedLumps):
+    t = TimerMs("[Prepare faces]")
+    t.start("Triangulate")
     triangles, colors, tricount = TriangulateFaces(returnedLumps)
+    t.end("Triangulate")
+
+    t.start("Make unique vertices")
     triangles, vertices = MakeUniqueVertices(
         np.array(triangles, dtype=np.uint16), returnedLumps[LumpsEnum.LUMP_VERTICES.value])
+    t.end("Make unique vertices")
+
+    t.start("Upload data to GPU")
 
     # turn that into ndarray, send as element buffer (vertex buffer is the same as last time, draw with GL_TRIANGLES...)
 
@@ -274,7 +282,7 @@ def PrepareFaces(returnedLumps):
     colorBuffer = GLuint()
     glGenBuffers(1, colorBuffer)
 
-    gBuffers = [vinfo, b1, indexBuffer, colorBuffer]
+    # gBuffers = [vinfo, b1, indexBuffer, colorBuffer]
 
     # # tell OpenGL to use the b1 buffer for rendering, and give it data
     glBindBuffer(GL_ARRAY_BUFFER, b1)
@@ -301,6 +309,8 @@ def PrepareFaces(returnedLumps):
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, np.array(
         [triangles], dtype=np.int16), GL_STATIC_DRAW)
 
+    t.end("Upload data to GPU")
+
     return tricount*3
 
 
@@ -319,18 +329,18 @@ def SetupOpenGL(returnedLumps):
 
     # glEnableClientState(GL_VERTEX_ARRAY) #this is not needed?
 
-    if useCustomShader == True:
+    if useCustomShader is True:
         t.start("Prepare shader")
 
         # get world bounds:
         # print(returnedLumps[LumpsEnum.LUMP_VERTICES.value])
         for vert in returnedLumps[LumpsEnum.LUMP_VERTICES.value]:
-            minx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 0].min()
+            # minx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 0].min()
             miny = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 1].min()
-            minz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 2].min()
-            maxx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 0].max()
+            # minz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 2].min()
+            # maxx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 0].max()
             maxy = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 1].max()
-            maxz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 2].max()
+            # maxz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 2].max()
         # print(minx,miny,minz,maxx,maxy,maxz)
 
         program = ProgramWithShader(vertex_shader_perspective, fragment_shader)
@@ -378,7 +388,7 @@ def DrawOpenGL(cam, display, program):
     UpdateViewToCamera(cam)
     # print(cam.pos)
 
-    if useCustomShader == True:
+    if useCustomShader is True:
         proj_mat = glGetFloatv(GL_MODELVIEW_MATRIX)  # now take it
         glUniformMatrix4fv(gProjectionMatrixHandle, 1, GL_FALSE, proj_mat)
 
