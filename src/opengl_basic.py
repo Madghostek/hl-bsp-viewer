@@ -3,6 +3,7 @@ from OpenGL.GLU import *
 from BSP import LumpsEnum
 import numpy as np
 
+from benchmark import TimerMs
 # Config
 ########
 useCustomShader = True
@@ -307,6 +308,8 @@ def SetupOpenGL(returnedLumps):
     global gDrawCount
     global gProjectionMatrixHandle
 
+    t = TimerMs("SetupOpenGL")
+
     # OpenGL version
     renderer = glGetString(GL_RENDERER)
     version = glGetString(GL_VERSION)
@@ -317,6 +320,7 @@ def SetupOpenGL(returnedLumps):
     # glEnableClientState(GL_VERTEX_ARRAY) #this is not needed?
 
     if useCustomShader == True:
+        t.start("Prepare shader")
 
         # get world bounds:
         # print(returnedLumps[LumpsEnum.LUMP_VERTICES.value])
@@ -339,8 +343,10 @@ def SetupOpenGL(returnedLumps):
         assert (gProjectionMatrixHandle != -1)
         t.end("Prepare shader")
 
+    t.start("PrepareFaces")
     # send data from lumps to gpu
     gDrawCount = PrepareFaces(returnedLumps)
+    t.end("PrepareFaces")
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
