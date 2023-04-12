@@ -2,6 +2,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from BSP import LumpsEnum
 import numpy as np
+
 # Config
 ########
 useCustomShader = True
@@ -29,7 +30,7 @@ void main () {
     gl_Position = projection_matrix*vec4(pos, 1.0f);
     position = vec4(pos, 1.0f);
     fragmentColor = vertexColor;
-}""" # lub pos
+}"""  # lub pos
 
 fragment_shader = """#version 410
 
@@ -76,304 +77,325 @@ void main(){{
 	FragColor = vec4(vec3(LinearizeDepth(gl_FragCoord.z)), 1.0);
 }}"""
 
+
 def UpdateViewToCamera(c):
-	glRotatef(-c.angle[0],1,0,0);
-	glRotatef(-c.angle[1],0,1,0)
-	glRotatef(-c.angle[2],0,0,1)
-	glTranslatef(*c.pos)
+    glRotatef(-c.angle[0], 1, 0, 0)
+    glRotatef(-c.angle[1], 0, 1, 0)
+    glRotatef(-c.angle[2], 0, 0, 1)
+    glTranslatef(*c.pos)
+
 
 def pe():
-	print("error",glGetError())
+    print("error", glGetError())
 
-def ProgramWithShader(vertexShader, fragmentShader = None):
-	#shader
-	prog = glCreateProgram()
-	shader = glCreateShader(GL_VERTEX_SHADER)
-	glShaderSource(shader, vertexShader)
-	glCompileShader(shader);
-	res = glGetShaderiv(shader,GL_COMPILE_STATUS)
-	print("vertex shader compilation status:","OK" if res==GL_TRUE else "ERROR")
-	assert (res == GL_TRUE)
-	glAttachShader(prog, shader);
-	print("LOG:",glGetProgramInfoLog(prog))
 
-	if fragmentShader:
-		shader = glCreateShader(GL_FRAGMENT_SHADER)
-		glShaderSource(shader, fragmentShader)
-		glCompileShader(shader);
-		print("LOG:",glGetProgramInfoLog(prog))
-		glAttachShader(prog, shader)
-		res = glGetShaderiv(shader,GL_COMPILE_STATUS)
-		print("Fragment shader compilation status:","OK" if res==GL_TRUE else "ERROR")
-		assert (res == GL_TRUE)
+def ProgramWithShader(vertexShader, fragmentShader=None):
+    # shader
+    prog = glCreateProgram()
+    shader = glCreateShader(GL_VERTEX_SHADER)
+    glShaderSource(shader, vertexShader)
+    glCompileShader(shader)
+    res = glGetShaderiv(shader, GL_COMPILE_STATUS)
+    print("vertex shader compilation status:",
+          "OK" if res == GL_TRUE else "ERROR")
+    assert (res == GL_TRUE)
+    glAttachShader(prog, shader)
+    print("LOG:", glGetProgramInfoLog(prog))
 
-		
+    if fragmentShader:
+        shader = glCreateShader(GL_FRAGMENT_SHADER)
+        glShaderSource(shader, fragmentShader)
+        glCompileShader(shader)
+        print("LOG:", glGetProgramInfoLog(prog))
+        glAttachShader(prog, shader)
+        res = glGetShaderiv(shader, GL_COMPILE_STATUS)
+        print("Fragment shader compilation status:",
+              "OK" if res == GL_TRUE else "ERROR")
+        assert (res == GL_TRUE)
 
-	glLinkProgram(prog);
-	glUseProgram(prog);
-	print("Program done")
-	return prog
+    glLinkProgram(prog)
+    glUseProgram(prog)
+    print("Program done")
+    return prog
+
 
 def PrepareEdges(returnedLumps):
-	global gBuffers, gDrawCount
+    global gBuffers, gDrawCount
 
-	# #init buffers
-	vinfo = GLuint()
-	glGenVertexArrays(1, vinfo)
-	glBindVertexArray(vinfo)
-	b1 = GLuint()
-	glGenBuffers(1, b1)
+    # #init buffers
+    vinfo = GLuint()
+    glGenVertexArrays(1, vinfo)
+    glBindVertexArray(vinfo)
+    b1 = GLuint()
+    glGenBuffers(1, b1)
 
-	indexBuffer = GLuint()
-	glGenBuffers(1, indexBuffer);
+    indexBuffer = GLuint()
+    glGenBuffers(1, indexBuffer)
 
-	gBuffers = [vinfo,b1,indexBuffer]
+    gBuffers = [vinfo, b1, indexBuffer]
 
-	# # tell OpenGL to use the b1 buffer for rendering, and give it data
-	glBindBuffer(GL_ARRAY_BUFFER, b1)
-	glBufferData(GL_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_VERTICES.value], GL_STATIC_DRAW)
+    # # tell OpenGL to use the b1 buffer for rendering, and give it data
+    glBindBuffer(GL_ARRAY_BUFFER, b1)
+    glBufferData(GL_ARRAY_BUFFER,
+                 returnedLumps[LumpsEnum.LUMP_VERTICES.value], GL_STATIC_DRAW)
 
-	# # describe what the data is (3x float)
-	glEnableVertexAttribArray(0);
-	# pe()
+    # # describe what the data is (3x float)
+    glEnableVertexAttribArray(0)
+    # pe()
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); #or None
-	# pe()
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0,
+                          ctypes.c_void_p(0))  # or None
+    # pe()
 
-	# describe the edges (element buffer)
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, returnedLumps[LumpsEnum.LUMP_EDGES.value], GL_STATIC_DRAW);
+    # describe the edges (element buffer)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 returnedLumps[LumpsEnum.LUMP_EDGES.value], GL_STATIC_DRAW)
 
-	return len(returnedLumps[LumpsEnum.LUMP_EDGES.value])*2
+    return len(returnedLumps[LumpsEnum.LUMP_EDGES.value])*2
 
 # retun color based on the plane its parallel to
+
+
 def FaceToColor(lumps, face):
-	plane = lumps[LumpsEnum.LUMP_PLANES.value][face.iPlane]
-	return np.array(plane[0:3],dtype=np.float32)
+    plane = lumps[LumpsEnum.LUMP_PLANES.value][face.iPlane]
+    return np.array(plane[0:3], dtype=np.float32)
+
 
 def TriangulateFaces(returnedLumps):
-	# split n-gons into triangles...
-	# when faces lump wants more than 3 vertices at once, split them into 0 1 2, 0 3 4, 0 4 5
-	# now these indices can be inserted into element array, then GL_TRIANGLES can be used
-	triangles = []
-	colors = [] # color for each vertex
-	tricount=0
-	edges = returnedLumps[LumpsEnum.LUMP_EDGES.value]
-	surfedges = returnedLumps[LumpsEnum.LUMP_SURFEDGES.value]
-	print("prepare faces from surfedges,",len(surfedges))
-	for face in returnedLumps[LumpsEnum.LUMP_FACES.value]:
-		# for each face, figure out which surfedges (then real edges) it uses,
-		# then get list of all vertex indices used by face, but in a way that every 3 make a triangle
+    # split n-gons into triangles...
+    # when faces lump wants more than 3 vertices at once, split them into 0 1 2, 0 3 4, 0 4 5
+    # now these indices can be inserted into element array, then GL_TRIANGLES can be used
+    triangles = []
+    colors = []  # color for each vertex
+    tricount = 0
+    edges = returnedLumps[LumpsEnum.LUMP_EDGES.value]
+    surfedges = returnedLumps[LumpsEnum.LUMP_SURFEDGES.value]
+    print("prepare faces from surfedges,", len(surfedges))
+    for face in returnedLumps[LumpsEnum.LUMP_FACES.value]:
+        # for each face, figure out which surfedges (then real edges) it uses,
+        # then get list of all vertex indices used by face, but in a way that every 3 make a triangle
 
-		# this means - get first "base" index, take second index, take next edge and one of the indices (the new one),
-		# take next edge and another new index, until all edges from face taken, save the triplets to triangles array
-		#print(face)
-		base = face.iFirstEdge
-		count = face.nEdges-1 #!!! since im building triangles on my own, the last edge is not needed
-		tricount+=count-1 # 4 edges = 2 tris, 5 edges = 3 tris etc
-		#print("the edges that will make a face:",surfedges[base:base+count+1])
-		#print("which have these indices...")
-		#for i in range(count):
-		#	print(edges[abs(surfedges[base+i][0])])
-		first = edges[abs(surfedges[base][0])]
-		#print("first",first,surfedges[base][0])
-		if surfedges[base][0]>=0:
-			astri=[first[0],first[1]]
-		else:
-			astri=[first[1],first[0]]
-		#print("first two:",astri)
-		first = astri[0]
-		sedge = surfedges[base+1]
-		#print(sedge)
-		newedge = edges[abs(sedge[0])]
-		#print(newedge)
-		if sedge[0]<=0:
-			newidx=newedge[0]
-		else:
-			newidx = newedge[1]
-		astri.append(newidx)
+        # this means - get first "base" index, take second index, take next edge and one of the indices (the new one),
+        # take next edge and another new index, until all edges from face taken, save the triplets to triangles array
+        # print(face)
+        base = face.iFirstEdge
+        # !!! since im building triangles on my own, the last edge is not needed
+        count = face.nEdges-1
+        tricount += count-1  # 4 edges = 2 tris, 5 edges = 3 tris etc
+        # print("the edges that will make a face:",surfedges[base:base+count+1])
+        # print("which have these indices...")
+        # for i in range(count):
+        # print(edges[abs(surfedges[base+i][0])])
+        first = edges[abs(surfedges[base][0])]
+        # print("first",first,surfedges[base][0])
+        if surfedges[base][0] >= 0:
+            astri = [first[0], first[1]]
+        else:
+            astri = [first[1], first[0]]
+        # print("first two:",astri)
+        first = astri[0]
+        sedge = surfedges[base+1]
+        # print(sedge)
+        newedge = edges[abs(sedge[0])]
+        # print(newedge)
+        if sedge[0] <= 0:
+            newidx = newedge[0]
+        else:
+            newidx = newedge[1]
+        astri.append(newidx)
 
-		cur = 2
-		#print("first tri:",astri)
-		while cur<count:
-			sedge = surfedges[base+cur]
-			#print(sedge)
-			newedge = edges[abs(sedge[0])] 
-			#print(newedge)
-			if sedge[0]<=0:
-				newidx=newedge[0]
-			else:
-				newidx = newedge[1]
-			#print(newidx)
-			astri.extend([first,astri[-1],newidx]) #append base and last one
-			#print("more",astri)
-			cur+=1
+        cur = 2
+        # print("first tri:",astri)
+        while cur < count:
+            sedge = surfedges[base+cur]
+            # print(sedge)
+            newedge = edges[abs(sedge[0])]
+            # print(newedge)
+            if sedge[0] <= 0:
+                newidx = newedge[0]
+            else:
+                newidx = newedge[1]
+            # print(newidx)
+            # append base and last one
+            astri.extend([first, astri[-1], newidx])
+            # print("more",astri)
+            cur += 1
 
-		color = FaceToColor(returnedLumps,face) # all triangles of given face will have same color
-		for i in range(0,len(astri),3):
-			triangles.append(astri[i:i+3])
-			# triangle is single-colored
-			colors.append([color]*3)
+        # all triangles of given face will have same color
+        color = FaceToColor(returnedLumps, face)
+        for i in range(0, len(astri), 3):
+            triangles.append(astri[i:i+3])
+            # triangle is single-colored
+            colors.append([color]*3)
 
-	#print("final tri list",triangles)
-	return triangles, colors, tricount
+    # print("final tri list",triangles)
+    return triangles, colors, tricount
+
 
 def MakeUniqueVertices(triangles, vertices):
-	"""
-	Prepares for coloring
-	triangles - list of (v1,v2,v3) tuples - indices into vertices
-	vertices - actual (x,y,z) points that make up triangles
+    """
+    Prepares for coloring
+    triangles - list of (v1,v2,v3) tuples - indices into vertices
+    vertices - actual (x,y,z) points that make up triangles
 
-	output - new list of indices and vertices that dont share vertices
-	no need to change anything in colors, it's just the indexes that change.
-	""" 
+    output - new list of indices and vertices that dont share vertices
+    no need to change anything in colors, it's just the indexes that change.
+    """
 
-	rebuildedTriangles = np.array([],dtype=vertices[0].dtype)
-	rebuildedVectices = np.array([],dtype=vertices.dtype)
+    # this frankenstein avoids appenging over and over
+    vertgen = (vx for tri in triangles for v in tri for vx in vertices[v])
 
-	i=0
-	for tri in triangles:
-		for v in tri:
-			rebuildedVectices=np.append(rebuildedVectices,vertices[v])
-			rebuildedTriangles=np.append(rebuildedTriangles, i)
-			i+=1
+    rebuildedVectices = np.fromiter(vertgen, dtype=vertices.dtype)
+    rebuildedTriangles = np.fromiter(
+        range(len(rebuildedVectices)), dtype=triangles.dtype)
 
-	return rebuildedTriangles,rebuildedVectices
+    return rebuildedTriangles, rebuildedVectices
+
 
 def PrepareFaces(returnedLumps):
-	triangles, colors ,tricount = TriangulateFaces(returnedLumps)
-	triangles, vertices = MakeUniqueVertices(triangles, returnedLumps[LumpsEnum.LUMP_VERTICES.value])
+    triangles, colors, tricount = TriangulateFaces(returnedLumps)
+    triangles, vertices = MakeUniqueVertices(
+        np.array(triangles, dtype=np.uint16), returnedLumps[LumpsEnum.LUMP_VERTICES.value])
 
-	# turn that into ndarray, send as element buffer (vertex buffer is the same as last time, draw with GL_TRIANGLES...)
+    # turn that into ndarray, send as element buffer (vertex buffer is the same as last time, draw with GL_TRIANGLES...)
 
-	vinfo = GLuint()
-	glGenVertexArrays(1, vinfo)
-	glBindVertexArray(vinfo)
+    vinfo = GLuint()
+    glGenVertexArrays(1, vinfo)
+    glBindVertexArray(vinfo)
 
-	b1 = GLuint()
-	glGenBuffers(1, b1)
+    b1 = GLuint()
+    glGenBuffers(1, b1)
 
-	indexBuffer = GLuint()
-	glGenBuffers(1, indexBuffer);
+    indexBuffer = GLuint()
+    glGenBuffers(1, indexBuffer)
 
-	colorBuffer = GLuint()
-	glGenBuffers(1, colorBuffer)
+    colorBuffer = GLuint()
+    glGenBuffers(1, colorBuffer)
 
-	gBuffers = [vinfo,b1,indexBuffer, colorBuffer]
+    gBuffers = [vinfo, b1, indexBuffer, colorBuffer]
 
-	# # tell OpenGL to use the b1 buffer for rendering, and give it data
-	glBindBuffer(GL_ARRAY_BUFFER, b1)
-	glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
+    # # tell OpenGL to use the b1 buffer for rendering, and give it data
+    glBindBuffer(GL_ARRAY_BUFFER, b1)
+    glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
 
+    # enable this attribute index in rendering process
+    glEnableVertexAttribArray(0)
 
-	# enable this attribute index in rendering process
-	glEnableVertexAttribArray(0);
+    # describe what the data is (3x float)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0,
+                          ctypes.c_void_p(0))  # or None
 
-	# describe what the data is (3x float)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); #or None
+    # now use color buffer
+    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer)
+    glBufferData(GL_ARRAY_BUFFER, np.array([colors]), GL_STATIC_DRAW)
 
-	# now use color buffer
-	glBindBuffer(GL_ARRAY_BUFFER, colorBuffer)
-	glBufferData(GL_ARRAY_BUFFER, np.array([colors]), GL_STATIC_DRAW)
+    # again tell opengl what to do with this data, this time use index 1 (which will be same in the shader)
+    glEnableVertexAttribArray(1)  # this could be written later
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0,
+                          ctypes.c_void_p(0))  # again 3 floats
 
-	# again tell opengl what to do with this data, this time use index 1 (which will be same in the shader)
-	glEnableVertexAttribArray(1); # this could be written later
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)); # again 3 floats
+    # describe the edges (element buffer)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, np.array(
+        [triangles], dtype=np.int16), GL_STATIC_DRAW)
 
-	# describe the edges (element buffer)
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, np.array([triangles],dtype=np.int16), GL_STATIC_DRAW);
+    return tricount*3
 
-	return tricount*3
 
 def SetupOpenGL(returnedLumps):
-	global gDrawCount
-	global gProjectionMatrixHandle
+    global gDrawCount
+    global gProjectionMatrixHandle
 
-	#OpenGL version
-	renderer = glGetString(GL_RENDERER)
-	version = glGetString(GL_VERSION)
-	print('Renderer:', renderer)  # Renderer: b'Intel Iris Pro OpenGL Engine'
-	print('OpenGL version supported: ', version)  # OpenGL version supported:  b'4.1 INTEL-10.12.13'
+    # OpenGL version
+    renderer = glGetString(GL_RENDERER)
+    version = glGetString(GL_VERSION)
+    print('Renderer:', renderer)  # Renderer: b'Intel Iris Pro OpenGL Engine'
+    # OpenGL version supported:  b'4.1 INTEL-10.12.13'
+    print('OpenGL version supported: ', version)
 
-	#glEnableClientState(GL_VERTEX_ARRAY) #this is not needed?
+    # glEnableClientState(GL_VERTEX_ARRAY) #this is not needed?
 
-	if useCustomShader == True:
+    if useCustomShader == True:
 
-		# get world bounds:
-		#print(returnedLumps[LumpsEnum.LUMP_VERTICES.value])
-		for vert in returnedLumps[LumpsEnum.LUMP_VERTICES.value]:
-			minx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,0].min()
-			miny = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,1].min()
-			minz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,2].min()
-			maxx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,0].max()
-			maxy = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,1].max()
-			maxz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:,2].max()
-		#print(minx,miny,minz,maxx,maxy,maxz)
+        # get world bounds:
+        # print(returnedLumps[LumpsEnum.LUMP_VERTICES.value])
+        for vert in returnedLumps[LumpsEnum.LUMP_VERTICES.value]:
+            minx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 0].min()
+            miny = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 1].min()
+            minz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 2].min()
+            maxx = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 0].max()
+            maxy = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 1].max()
+            maxz = returnedLumps[LumpsEnum.LUMP_VERTICES.value][:, 2].max()
+        # print(minx,miny,minz,maxx,maxy,maxz)
 
-		program = ProgramWithShader(vertex_shader_perspective, fragment_shader)
-		gProjectionMatrixHandle = glGetUniformLocation(program, "projection_matrix")
-		yminHandle = glGetUniformLocation(program, "ymin")
-		ymaxHandle = glGetUniformLocation(program, "ymax")
-		glUniform1f(yminHandle, miny)
-		glUniform1f(ymaxHandle, maxy)
-		assert (gProjectionMatrixHandle!=-1)
+        program = ProgramWithShader(vertex_shader_perspective, fragment_shader)
+        gProjectionMatrixHandle = glGetUniformLocation(
+            program, "projection_matrix")
+        yminHandle = glGetUniformLocation(program, "ymin")
+        ymaxHandle = glGetUniformLocation(program, "ymax")
+        glUniform1f(yminHandle, miny)
+        glUniform1f(ymaxHandle, maxy)
+        assert (gProjectionMatrixHandle != -1)
+        t.end("Prepare shader")
 
-	# send data from lumps to gpu
-	gDrawCount = PrepareFaces(returnedLumps)
+    # send data from lumps to gpu
+    gDrawCount = PrepareFaces(returnedLumps)
 
-	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
-	glEnable(GL_DEPTH_TEST); # gl_FragCoord in fragment shader
-	#glEnable(GL_MULTISAMPLE); 
+    glEnable(GL_DEPTH_TEST)  # gl_FragCoord in fragment shader
+    # glEnable(GL_MULTISAMPLE);
 
-	print("DRAWCOUNT",gDrawCount)
+    print("DRAWCOUNT", gDrawCount)
 
-	return program
+    return program
 
 # override debug colors with this
 # set to -1 to disable
-def SetFragColor(program,color):
-	forceColor = glGetUniformLocation(program, "forceColor")
-	glUniform1f(forceColor, color)
 
-def DrawOpenGL(cam,display ,program):
-	global gDrawCount
-	global gProjectionMatrixHandle
-	# send the final matrix to shader
 
-	# everything is done on model matrix because its simpler
-	glLoadIdentity() # clear the model matrix
-	gluPerspective(45, (display[0]/display[1]), cameraNear, cameraFar) # generate the perspective
-	UpdateViewToCamera(cam)
-	#print(cam.pos)
+def SetFragColor(program, color):
+    forceColor = glGetUniformLocation(program, "forceColor")
+    glUniform1f(forceColor, color)
 
-	if useCustomShader == True:
-		proj_mat = glGetFloatv(GL_MODELVIEW_MATRIX);	# now take it
-		glUniformMatrix4fv(gProjectionMatrixHandle, 1, GL_FALSE, proj_mat);
 
-		
+def DrawOpenGL(cam, display, program):
+    global gDrawCount
+    global gProjectionMatrixHandle
+    # send the final matrix to shader
 
-	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+    # everything is done on model matrix because its simpler
+    glLoadIdentity()  # clear the model matrix
+    # generate the perspective
+    gluPerspective(45, (display[0]/display[1]), cameraNear, cameraFar)
+    UpdateViewToCamera(cam)
+    # print(cam.pos)
 
-	# here pass pretty much length of element array, no matter the mode
-	SetFragColor(program,-1)
-	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-	glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT,None)	
+    if useCustomShader == True:
+        proj_mat = glGetFloatv(GL_MODELVIEW_MATRIX)  # now take it
+        glUniformMatrix4fv(gProjectionMatrixHandle, 1, GL_FALSE, proj_mat)
 
-	# outline
-	SetFragColor(program,0)
-	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-	glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT,None)	
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    # here pass pretty much length of element array, no matter the mode
+    SetFragColor(program, -1)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+    glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT, None)
+
+    # outline
+    SetFragColor(program, 0)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+    glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT, None)
 
 
 def CleanUpOpenGL():
-	global gBuffers
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, gBuffers[2]);
+    global gBuffers
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+    glDeleteBuffers(1, gBuffers[2])
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, gBuffers[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, 0)
+    glDeleteBuffers(1, gBuffers[1])
 
-	glBindVertexArray(0)
-	glDeleteVertexArrays(gBuffers[0])
+    glBindVertexArray(0)
+    glDeleteVertexArrays(gBuffers[0])
