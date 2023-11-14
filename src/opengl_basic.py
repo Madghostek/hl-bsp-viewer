@@ -234,18 +234,6 @@ def TriangulateFaces(returnedLumps):
     # print("final tri list",triangles)
     return triangles, colors, tricount
 
-
-def MakeUniqueVertices(triangles, vertices):
-
-    separatedVertices = SeparateVertices(triangles, vertices)
-
-    rebuildedVectices = np.fromiter(separatedVertices, dtype=vertices.dtype)
-    rebuildedTriangles = np.fromiter(
-        range(len(rebuildedVectices)), dtype=triangles.dtype)
-
-    return rebuildedTriangles, rebuildedVectices
-
-
 def PrepareFaces(returnedLumps):
     t = TimerMs("[Prepare faces]")
     t.start("Triangulate")
@@ -253,8 +241,8 @@ def PrepareFaces(returnedLumps):
     t.end("Triangulate")
 
     t.start("Make unique vertices")
-    triangles, vertices = MakeUniqueVertices(
-        np.array(triangles, dtype=np.uint16), returnedLumps[LumpsEnum.LUMP_VERTICES.value])
+    triangles, vertices = SeparateVertices(
+        np.array(triangles, dtype=np.uint32), returnedLumps[LumpsEnum.LUMP_VERTICES.value])
     t.end("Make unique vertices")
 
     t.start("Upload data to GPU")
@@ -299,7 +287,7 @@ def PrepareFaces(returnedLumps):
     # describe the edges (element buffer)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, np.array(
-        [triangles], dtype=np.int16), GL_STATIC_DRAW)
+        [triangles], dtype=np.uint32), GL_STATIC_DRAW)
 
     t.end("Upload data to GPU")
 
@@ -389,12 +377,12 @@ def DrawOpenGL(cam, display, program):
     # here pass pretty much length of element array, no matter the mode
     SetFragColor(program, -1)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-    glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT, None)
+    glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_INT, None)
 
     # outline
     SetFragColor(program, 0)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-    glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_SHORT, None)
+    glDrawElements(GL_TRIANGLES, gDrawCount, GL_UNSIGNED_INT, None)
 
 
 def CleanUpOpenGL():

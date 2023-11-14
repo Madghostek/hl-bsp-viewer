@@ -1,10 +1,17 @@
+import numpy as np
+
 def SeparateVertices(triangles, vertices):
 	"""
-    Prepares for coloring
-    triangles - list of (v1,v2,v3) tuples - indices into vertices
-    vertices - actual (x,y,z) points that make up triangles
+	Prepares for coloring
+	triangles - numpy list of (v1,v2,v3) tuples - indices into vertices
+	vertices - numpy list, actual (x,y,z) points that make up triangles
 
-    output - new list of indices and vertices that dont share vertices
-    no need to change anything in colors, it's just the indexes that change.
-    """
-	return (vx for tri in triangles for v in tri for vx in vertices[v])
+	returns tuple	- list of triangles, will always
+					- list on new vertices (flattened), that has duplicates now
+	"""
+	separatedVertices = (vx for tri in triangles for v in tri for vx in vertices[v])
+
+	rebuildedVectices = np.fromiter(separatedVertices, dtype=vertices.dtype)
+	rebuildedTriangles = np.fromiter(range(len(rebuildedVectices)), dtype=np.uint32)
+
+	return rebuildedTriangles, rebuildedVectices
