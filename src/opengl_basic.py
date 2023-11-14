@@ -1,6 +1,7 @@
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from BSP import LumpsEnum
+from triangle_math import SeparateVertices
 import numpy as np
 
 from benchmark import TimerMs
@@ -235,19 +236,10 @@ def TriangulateFaces(returnedLumps):
 
 
 def MakeUniqueVertices(triangles, vertices):
-    """
-    Prepares for coloring
-    triangles - list of (v1,v2,v3) tuples - indices into vertices
-    vertices - actual (x,y,z) points that make up triangles
 
-    output - new list of indices and vertices that dont share vertices
-    no need to change anything in colors, it's just the indexes that change.
-    """
+    separatedVertices = SeparateVertices(triangles, vertices)
 
-    # this frankenstein avoids appenging over and over
-    vertgen = (vx for tri in triangles for v in tri for vx in vertices[v])
-
-    rebuildedVectices = np.fromiter(vertgen, dtype=vertices.dtype)
+    rebuildedVectices = np.fromiter(separatedVertices, dtype=vertices.dtype)
     rebuildedTriangles = np.fromiter(
         range(len(rebuildedVectices)), dtype=triangles.dtype)
 
