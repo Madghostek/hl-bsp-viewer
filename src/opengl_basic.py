@@ -241,6 +241,7 @@ def PrepareFaces(returnedLumps):
     t.end("Triangulate")
 
     t.start("Make unique vertices")
+    # uint32 here!! this is reflected in drawing code
     triangles, vertices = SeparateVertices(
         np.array(triangles, dtype=np.uint32), returnedLumps[LumpsEnum.LUMP_VERTICES.value])
     t.end("Make unique vertices")
@@ -284,7 +285,7 @@ def PrepareFaces(returnedLumps):
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0,
                           ctypes.c_void_p(0))  # again 3 floats
 
-    # describe the edges (element buffer)
+    # describe the edges (element buffer), uint32 again here
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, np.array(
         [triangles], dtype=np.uint32), GL_STATIC_DRAW)

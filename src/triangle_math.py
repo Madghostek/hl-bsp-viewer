@@ -12,6 +12,7 @@ def SeparateVertices(triangles, vertices):
 	separatedVertices = (vx for tri in triangles for v in tri for vx in vertices[v])
 
 	rebuildedVectices = np.fromiter(separatedVertices, dtype=vertices.dtype)
+	# dtype is 32 bit, because there is a chance to overflow after separating
 	rebuildedTriangles = np.fromiter(range(len(rebuildedVectices)), dtype=np.uint32)
 
 	return rebuildedTriangles, rebuildedVectices
