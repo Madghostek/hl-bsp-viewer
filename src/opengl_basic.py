@@ -1,7 +1,7 @@
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from BSP import LumpsEnum
-from triangle_math import SeparateVertices
+from triangle_math import SeparateVertices,hsv_to_rgb
 import numpy as np
 
 from benchmark import TimerMs
@@ -161,7 +161,9 @@ def PrepareEdges(returnedLumps):
 
 def FaceToColor(lumps, face):
     plane = lumps[LumpsEnum.LUMP_PLANES.value][face.iPlane]
-    return np.array(plane[0:3], dtype=np.float32)
+    col = hsv_to_rgb(abs(plane[1]),0.2,0.5+max(plane[0],0)/2,1)
+    #print(plane[0:3])
+    return np.array(col, dtype=np.float32)
 
 
 def TriangulateFaces(returnedLumps):
@@ -343,6 +345,7 @@ def SetupOpenGL(returnedLumps):
 
     glEnable(GL_DEPTH_TEST)  # gl_FragCoord in fragment shader
     # glEnable(GL_MULTISAMPLE);
+    glLineWidth(2)
 
     print("DRAWCOUNT", gDrawCount)
 
